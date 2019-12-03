@@ -6,5 +6,6 @@ setuptools.setup(
     version='1.0.0',
     packages=['snappy'],
     entry_points=dict(
-        console_scripts=[]),
+        console_scripts=[
+            "snappy = snappy:script_main"]),
     install_requires=[])
