@@ -75,8 +75,9 @@ def main(datasets, keep, recursive):
     if keep is not None:
         for dataset in datasets:
             snapshots = [i for i in list_snapshots(dataset) if is_snappy_snapshot(i)]
+
             # Make this work even with --keep=0.
-            outdated_snapshots = snapshots[:len(snapshots) - keep]
+            outdated_snapshots = list(reversed(snapshots))[keep:]
 
             for snapshot in outdated_snapshots:
                 destroy_snapshot(snapshot, recursive)
