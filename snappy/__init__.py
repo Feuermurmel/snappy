@@ -58,23 +58,31 @@ def crate_snapshot(snapshots, recursive):
 def list_snapshots(dataset):
     output = subprocess.check_output(['zfs', 'list', '-H', '-d', '1', '-t', 'snapshot', '-o', 'name', '--', dataset])
 
-    return output.decode().splitlines()
+    def iter_snapshots():
+        for i in output.decode().splitlines():
+            dataset_part, snapshot_name = i.split('@')
+
+            assert dataset_part == dataset
+
+            yield snapshot_name
+
+    return list(iter_snapshots())
 
 
-def destroy_snapshot(snapshot, recursive):
+def destroy_snapshots(dataset, snapshot_names, recursive):
     recursive_arg = ['-r'] if recursive else []
 
-    log('Destroying snapshot: {}', snapshot)
-    subprocess.check_call(['zfs', 'destroy', *recursive_arg, '--', snapshot])
+    snapshot_arg = '{}@{}'.format(dataset, ','.join(snapshot_names))
+
+    log('Destroying snapshots: {}', snapshot_arg)
+    subprocess.check_call(['zfs', 'destroy', *recursive_arg, '--', snapshot_arg])
 
 
 def get_snapshot_name(timestamp):
     return snapshot_name_prefix + timestamp.strftime('%F-%H%M%S')
 
 
-def is_snappy_snapshot(snapshot):
-    dataset, snapshot_name = snapshot.split('@')
-
+def is_snappy_snapshot(snapshot_name):
     return snapshot_name.startswith(snapshot_name_prefix)
 
 
@@ -86,13 +94,12 @@ def main(datasets, keep, prune_only, recursive):
 
     if keep is not None:
         for dataset in datasets:
-            snapshots = [i for i in list_snapshots(dataset) if is_snappy_snapshot(i)]
+            snapshot_names = list(filter(is_snappy_snapshot, list_snapshots(dataset)))
 
             # Make this work even with --keep=0.
-            outdated_snapshots = list(reversed(snapshots))[keep:]
+            outdated_snapshot_names = list(reversed(snapshot_names))[keep:]
 
-            for snapshot in outdated_snapshots:
-                destroy_snapshot(snapshot, recursive)
+            destroy_snapshots(dataset, outdated_snapshot_names, recursive)
 
 
 def script_main():
