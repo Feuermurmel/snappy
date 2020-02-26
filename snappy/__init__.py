@@ -26,15 +26,26 @@ def parse_args():
         '-k',
         '--keep',
         type=int,
-        help='Activate pruning of outdated snapshots. Keep this many most '
-             'recent snapshots.')
+        help='Prune outdated snapshots after creating a new snapshot. Keep '
+             'the specified number of most recent snapshots.')
+
+    parser.add_argument(
+        '-p',
+        '--prune-only',
+        action='store_true',
+        help='Disables creating snapshots. Requires --keep.')
 
     parser.add_argument(
         'datasets',
         nargs='+',
         help='Datasets on which to create (and prune) snapshots.')
 
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    if args.prune_only and args.keep is None:
+        parser.error('--prune-only requires --keep.')
+
+    return args
 
 
 def crate_snapshot(snapshots, recursive):
@@ -67,10 +78,11 @@ def is_snappy_snapshot(snapshot):
     return snapshot_name.startswith(snapshot_name_prefix)
 
 
-def main(datasets, keep, recursive):
+def main(datasets, keep, prune_only, recursive):
     snapshot_name = get_snapshot_name(datetime.datetime.now())
 
-    crate_snapshot(['{}@{}'.format(i, snapshot_name) for i in datasets], recursive)
+    if not prune_only:
+        crate_snapshot(['{}@{}'.format(i, snapshot_name) for i in datasets], recursive)
 
     if keep is not None:
         for dataset in datasets:
