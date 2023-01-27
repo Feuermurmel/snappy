@@ -70,6 +70,10 @@ def list_snapshots(dataset):
 
 
 def destroy_snapshots(dataset, snapshot_names, recursive):
+    if not snapshot_names:
+        # Nothing to do.
+        return
+
     recursive_arg = ['-r'] if recursive else []
 
     snapshot_arg = '{}@{}'.format(dataset, ','.join(snapshot_names))
