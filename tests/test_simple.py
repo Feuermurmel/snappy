@@ -16,10 +16,10 @@ def test_prune(temp_filesystem, snappy_command):
 
     assert len(list_snapshots(temp_filesystem)) == 3
 
-    snappy_command('-p', '-k', '1', temp_filesystem)
+    snappy_command(f'-p -k 1 {temp_filesystem}')
 
     assert len(list_snapshots(temp_filesystem)) == 1
 
-    snappy_command('-p', '-k', '0', temp_filesystem)
+    snappy_command(f'-p -k 0 {temp_filesystem}')
 
     assert len(list_snapshots(temp_filesystem)) == 0

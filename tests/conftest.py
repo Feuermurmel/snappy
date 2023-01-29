@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import shlex
 import subprocess
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -71,8 +72,8 @@ def temp_filesystem(temp_zpool):
 
 @pytest.fixture
 def snappy_command(monkeypatch):
-    def command(*args: str | Path):
-        monkeypatch.setattr('sys.argv', ['snappy', *args])
+    def command(args: str):
+        monkeypatch.setattr('sys.argv', shlex.split(f'snappy {args}'))
         entry_point()
 
     return command

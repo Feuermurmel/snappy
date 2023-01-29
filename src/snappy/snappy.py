@@ -16,7 +16,7 @@ def _datetime_now():
 
 
 def main(
-        datasets: list[str], keep_specs: 'list[KeepSpec] | None',
+        datasets: list[str], keep_specs: list[KeepSpec] | None,
         prune_only: bool, recursive: bool):
     snapshot_name = make_snapshot_name(_datetime_now())
 
