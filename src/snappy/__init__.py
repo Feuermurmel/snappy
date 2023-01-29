@@ -1,15 +1,15 @@
 import argparse
-import datetime
-import subprocess
 import logging
-
+import subprocess
 import sys
-
+from argparse import Namespace
+from datetime import datetime
+from typing import Iterator
 
 snapshot_name_prefix = 'snappy-'
 
 
-def parse_args():
+def parse_args() -> Namespace:
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
@@ -45,17 +45,18 @@ def parse_args():
     return args
 
 
-def crate_snapshot(snapshots, recursive):
+def crate_snapshot(snapshots: list[str], recursive: bool):
     recursive_arg = ['-r'] if recursive else []
 
     logging.info(f'Creating snapshots: {", ".join(snapshots)}')
     subprocess.check_call(['zfs', 'snapshot', *recursive_arg, '--', *snapshots])
 
 
-def list_snapshots(dataset):
-    output = subprocess.check_output(['zfs', 'list', '-H', '-d', '1', '-t', 'snapshot', '-o', 'name', '--', dataset])
+def list_snapshots(dataset: str) -> list[str]:
+    output = subprocess.check_output(
+        ['zfs', 'list', '-H', '-d', '1', '-t', 'snapshot', '-o', 'name', '--', dataset])
 
-    def iter_snapshots():
+    def iter_snapshots() -> Iterator[str]:
         for i in output.decode().splitlines():
             dataset_part, snapshot_name = i.split('@')
 
@@ -66,32 +67,32 @@ def list_snapshots(dataset):
     return list(iter_snapshots())
 
 
-def destroy_snapshots(dataset, snapshot_names, recursive):
+def destroy_snapshots(dataset: str, snapshot_names: list[str], recursive: bool):
     if not snapshot_names:
         # Nothing to do.
         return
 
     recursive_arg = ['-r'] if recursive else []
 
-    snapshot_arg = '{}@{}'.format(dataset, ','.join(snapshot_names))
+    snapshot_arg = f'{dataset}@{",".join(snapshot_names)}'
 
-    logging.info('Destroying snapshots: {}', snapshot_arg)
+    logging.info(f'Destroying snapshots: {snapshot_arg}')
     subprocess.check_call(['zfs', 'destroy', *recursive_arg, '--', snapshot_arg])
 
 
-def get_snapshot_name(timestamp):
+def get_snapshot_name(timestamp: datetime) -> str:
     return snapshot_name_prefix + timestamp.strftime('%F-%H%M%S')
 
 
-def is_snappy_snapshot(snapshot_name):
+def is_snappy_snapshot(snapshot_name) -> bool:
     return snapshot_name.startswith(snapshot_name_prefix)
 
 
-def main(datasets, keep, prune_only, recursive):
-    snapshot_name = get_snapshot_name(datetime.datetime.now())
+def main(datasets: list[str], keep: bool, prune_only: bool, recursive: bool):
+    snapshot_name = get_snapshot_name(datetime.now())
 
     if not prune_only:
-        crate_snapshot(['{}@{}'.format(i, snapshot_name) for i in datasets], recursive)
+        crate_snapshot([f'{i}@{snapshot_name}' for i in datasets], recursive)
 
     if keep is not None:
         for dataset in datasets:
