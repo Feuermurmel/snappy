@@ -110,4 +110,4 @@ def entry_point():
         main(**vars(parse_args()))
     except KeyboardInterrupt:
         logging.error('Operation interrupted.')
-        sys.exit(1)
+        sys.exit(130)
