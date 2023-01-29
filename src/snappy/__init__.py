@@ -80,6 +80,14 @@ def destroy_snapshots(dataset: str, snapshot_names: list[str], recursive: bool):
     subprocess.check_call(['zfs', 'destroy', *recursive_arg, '--', snapshot_arg])
 
 
+def datetime_now():
+    """
+    Simple wrapper for `datetime.now()`. Allows the current time to be mocked
+    from tests.
+    """
+    return datetime.now()
+
+
 def get_snapshot_name(timestamp: datetime) -> str:
     return snapshot_name_prefix + timestamp.strftime('%F-%H%M%S')
 
@@ -89,7 +97,7 @@ def is_snappy_snapshot(snapshot_name) -> bool:
 
 
 def main(datasets: list[str], keep: bool, prune_only: bool, recursive: bool):
-    snapshot_name = get_snapshot_name(datetime.now())
+    snapshot_name = get_snapshot_name(datetime_now())
 
     if not prune_only:
         crate_snapshot([f'{i}@{snapshot_name}' for i in datasets], recursive)

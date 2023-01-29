@@ -1,30 +1,21 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-import pytest
-
-from conftest import zfs
-from snappy import entry_point
-
-
-@pytest.fixture
-def snappy_command(monkeypatch):
-    def command(*args: str | Path):
-        monkeypatch.setattr('sys.argv', ['snappy', *args])
-        entry_point()
-
-    return command
-
-
-def test_temp_fs(temp_filesystem):
-    (temp_filesystem.path / 'file').touch()
+from conftest import list_snapshots
 
 
 def test_create_snapshot(temp_filesystem, snappy_command):
-    snappy_command(temp_filesystem.name)
+    snappy_command(temp_filesystem)
 
-    snapshots = zfs('list', '-Hp', '-r', '-t', 'snapshot', '-o', 'name', temp_filesystem.name)
+    assert list_snapshots(temp_filesystem) == [
+        f'{temp_filesystem}@snappy-2001-02-03-081500']
 
-    assert len(snapshots) == 1
-    assert snapshots[0].split('@', 1)[1].startswith('snappy-')
+
+def test_prune(temp_filesystem, snappy_command):
+    for i in range(3):
+        snappy_command(temp_filesystem)
+
+    assert len(list_snapshots(temp_filesystem)) == 3
+
+    snappy_command('-p', '-k', '1', temp_filesystem)
+
+    assert len(list_snapshots(temp_filesystem)) == 1
