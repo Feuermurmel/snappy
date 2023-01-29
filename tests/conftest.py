@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+
 temp_zpool_vdev_path = Path('/dev/shm/snappy-test-vdev')
 temp_zpool_name = 'snappy-test-zpool'
 

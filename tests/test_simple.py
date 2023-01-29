@@ -4,7 +4,8 @@ from pathlib import Path
 
 import pytest
 
-from snappy import entry_point, zfs
+from conftest import zfs
+from snappy import entry_point
 
 
 @pytest.fixture
