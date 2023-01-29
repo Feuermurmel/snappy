@@ -106,7 +106,7 @@ def main(datasets, keep, prune_only, recursive):
             destroy_snapshots(dataset, outdated_snapshot_names, recursive)
 
 
-def script_main():
+def entry_point():
     try:
         main(**vars(parse_args()))
     except KeyboardInterrupt:

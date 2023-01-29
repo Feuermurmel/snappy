@@ -1,0 +1,23 @@
+[project]
+name = "snappy"
+version = "0"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest", "mypy"]
+
+[project.scripts]
+snappy = "snappy:entry_point"
+
+[tool.mypy]
+files = ["src", "tests"]
+namespace_packages = true
+ignore_missing_imports = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unreachable = true
+strict_concatenate = true
+strict_equality = true
+
+[tool.pytest.ini_options]
+testpaths = "tests"
