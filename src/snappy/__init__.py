@@ -1,15 +1,12 @@
 import argparse
 import datetime
 import subprocess
+import logging
 
 import sys
 
 
 snapshot_name_prefix = 'snappy-'
-
-
-def log(message, *args):
-    print(message.format(*args), file=sys.stderr)
 
 
 def parse_args():
@@ -51,7 +48,7 @@ def parse_args():
 def crate_snapshot(snapshots, recursive):
     recursive_arg = ['-r'] if recursive else []
 
-    log('Creating snapshots: {}', ', '.join(snapshots))
+    logging.info(f'Creating snapshots: {", ".join(snapshots)}')
     subprocess.check_call(['zfs', 'snapshot', *recursive_arg, '--', *snapshots])
 
 
@@ -78,7 +75,7 @@ def destroy_snapshots(dataset, snapshot_names, recursive):
 
     snapshot_arg = '{}@{}'.format(dataset, ','.join(snapshot_names))
 
-    log('Destroying snapshots: {}', snapshot_arg)
+    logging.info('Destroying snapshots: {}', snapshot_arg)
     subprocess.check_call(['zfs', 'destroy', *recursive_arg, '--', snapshot_arg])
 
 
@@ -107,8 +104,10 @@ def main(datasets, keep, prune_only, recursive):
 
 
 def entry_point():
+    logging.basicConfig(level=logging.INFO, format='%(message)s')
+
     try:
         main(**vars(parse_args()))
     except KeyboardInterrupt:
-        log('Operation interrupted.')
+        logging.error('Operation interrupted.')
         sys.exit(1)
