@@ -93,4 +93,4 @@ def mocked_datetime_now(monkeypatch):
 
         return now
 
-    monkeypatch.setattr('snappy.datetime_now', mock_datetime_now)
+    monkeypatch.setattr('snappy.snappy._datetime_now', mock_datetime_now)
