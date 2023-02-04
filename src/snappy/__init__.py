@@ -4,10 +4,11 @@ import sys
 from argparse import Namespace
 
 from snappy.snappy import main
+from snappy.utils import BetterHelpFormatter
 
 
 def _parse_args() -> Namespace:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=BetterHelpFormatter)
 
     parser.add_argument(
         '-r',
