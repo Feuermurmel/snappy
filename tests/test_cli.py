@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 from conftest import list_snapshots
 
 
