@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 from datetime import datetime
 
-from snappy.zfs import crate_snapshot, list_snapshots, destroy_snapshots
-
-
-_snapshot_name_prefix = 'snappy-'
+from snappy.snapshots import make_snapshot_name, get_snapshot_infos, \
+    select_snapshots_to_keep, KeepSpec
+from snappy.zfs import crate_snapshot, destroy_snapshots
 
 
 def _datetime_now():
@@ -14,25 +15,20 @@ def _datetime_now():
     return datetime.now()
 
 
-def _make_snapshot_name(timestamp: datetime) -> str:
-    return _snapshot_name_prefix + timestamp.strftime('%F-%H%M%S')
-
-
-def _is_snappy_snapshot(snapshot_name) -> bool:
-    return snapshot_name.startswith(_snapshot_name_prefix)
-
-
-def main(datasets: list[str], keep: bool, prune_only: bool, recursive: bool):
-    snapshot_name = _make_snapshot_name(_datetime_now())
+def main(
+        datasets: list[str], keep_specs: 'list[KeepSpec] | None',
+        prune_only: bool, recursive: bool):
+    snapshot_name = make_snapshot_name(_datetime_now())
 
     if not prune_only:
         crate_snapshot([f'{i}@{snapshot_name}' for i in datasets], recursive)
 
-    if keep is not None:
+    if keep_specs:
         for dataset in datasets:
-            snapshot_names = list(filter(_is_snappy_snapshot, list_snapshots(dataset)))
+            snapshots = get_snapshot_infos(dataset)
 
-            # Make this work even with --keep=0.
-            outdated_snapshot_names = list(reversed(snapshot_names))[keep:]
+            pruned_snapshots = \
+                set(snapshots) - select_snapshots_to_keep(snapshots, keep_specs)
+            pruned_snapshot_names = [i.name for i in pruned_snapshots]
 
-            destroy_snapshots(dataset, outdated_snapshot_names, recursive)
+            destroy_snapshots(dataset, pruned_snapshot_names, recursive)
