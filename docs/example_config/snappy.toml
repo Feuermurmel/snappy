@@ -1,0 +1,7 @@
+[[snapshot]]
+datasets = ["qnap-data"]
+recursive = true
+prune_only = false
+
+[snapshot.prune]
+keep = ['10', '1h:24', '1d:30', '4w']

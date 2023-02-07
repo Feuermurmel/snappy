@@ -2,10 +2,11 @@ import argparse
 import logging
 import sys
 from argparse import Namespace
+from pathlib import Path
 
-from snappy.config import parse_keep_spec
+from snappy.config import get_default_config_path, parse_keep_spec
 from snappy.snappy import main
-from snappy.utils import BetterHelpFormatter
+from snappy.utils import BetterHelpFormatter, UserError
 
 
 def _parse_args() -> Namespace:
@@ -41,6 +42,7 @@ def _parse_args() -> Namespace:
         type=parse_keep_spec,
         dest='keep_specs',
         action='append',
+        default=[],
         metavar='KEEP SPECIFICATION',
         help='Prune old snapshots after creating a new one. This option can be '
              'given multiple times to keep additional snapshots in different '
@@ -53,14 +55,39 @@ def _parse_args() -> Namespace:
         help='Disables creating snapshots. Requires --keep.')
 
     parser.add_argument(
+        '--auto',
+        action='store_true',
+        help='Run the snapshot and prune actions specified in the '
+             'configuration file instead of on the command line.')
+
+    parser.add_argument(
+        '--config',
+        type=Path,
+        dest='config_path',
+        help=f'Path to the configuration file to use. Requires --auto. '
+             f'Defaults to `{get_default_config_path()}\'.')
+
+    parser.add_argument(
         'datasets',
-        nargs='+',
+        nargs='*',
+        metavar='DATASETS',
         help='Datasets on which to create (and prune) snapshots.')
 
     args = parser.parse_args()
 
-    if args.prune_only and args.keep_specs is None:
-        parser.error('--prune-only requires --keep.')
+    if args.auto:
+        if args.recursive or args.keep_specs or args.prune_only or args.datasets:
+            parser.error('--auto conflicts with --recursive, --keep, '
+                         '--prune-only and DATASETS.')
+    else:
+        if not args.datasets:
+            parser.error('DATASETS is required unless --auto is given.')
+
+        if args.config_path is not None:
+            parser.error('--config requires --auto.')
+
+        if args.prune_only and not args.keep_specs:
+            parser.error('--prune-only requires --keep.')
 
     return args
 
@@ -70,6 +97,9 @@ def entry_point():
 
     try:
         main(**vars(_parse_args()))
+    except UserError as e:
+        logging.error(f'error: {e}')
+        sys.exit(1)
     except KeyboardInterrupt:
         logging.error('Operation interrupted.')
         sys.exit(130)

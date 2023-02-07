@@ -57,7 +57,7 @@ def test_multiple_filesystems(
 
 
 def test_invalid_argument_combinations(snappy_command, fails_with_message):
-    with fails_with_message('required: datasets'):
+    with fails_with_message('DATASETS is required unless --auto is given'):
         snappy_command('')
 
     with fails_with_message('--prune-only requires --keep'):

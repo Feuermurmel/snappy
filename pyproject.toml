@@ -1,10 +1,10 @@
 [project]
 name = "snappy"
 version = "0"
-dependencies = []
+dependencies = ["toml", "dacite"]
 
 [project.optional-dependencies]
-dev = ["pytest", "mypy"]
+dev = ["pytest", "mypy", "types-toml"]
 
 [project.scripts]
 snappy = "snappy:entry_point"
@@ -21,3 +21,6 @@ strict_equality = true
 
 [tool.pytest.ini_options]
 testpaths = "tests"
+
+# Allow log output to be inspected with capsys fixutre.
+addopts = "-p no:logging"

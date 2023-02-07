@@ -2,6 +2,10 @@ import textwrap
 from argparse import HelpFormatter
 
 
+class UserError(Exception):
+    pass
+
+
 def _wrap_paragraphs(text: str, width: int, indent: str):
     """
     Wrapper around `textwrap.wrap()` which keeps newlines in the input string
