@@ -1,8 +1,3 @@
-import re
-from contextlib import contextmanager
-
-import pytest
-
 from conftest import get_snapshots, zfs
 
 
@@ -61,14 +56,7 @@ def test_multiple_filesystems(
     assert get_snapshots(other_temp_filesystem) == ['snappy-2001-02-03-091500']
 
 
-def test_invalid_argument_combinations(snappy_command, capsys):
-    @contextmanager
-    def fails_with_message(message_pattern: str):
-        with pytest.raises(SystemExit):
-            yield
-
-        assert re.search(message_pattern, capsys.readouterr().err)
-
+def test_invalid_argument_combinations(snappy_command, fails_with_message):
     with fails_with_message('required: datasets'):
         snappy_command('')
 

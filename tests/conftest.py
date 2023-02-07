@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import itertools
+import re
 import shlex
 import subprocess
 from contextlib import contextmanager
@@ -95,6 +96,18 @@ def snappy_command(monkeypatch):
         entry_point()
 
     return command
+
+
+@pytest.fixture
+def fails_with_message(capsys):
+    @contextmanager
+    def fails_with_message_context(message_pattern: str):
+        with pytest.raises(SystemExit):
+            yield
+
+        assert re.search(message_pattern, capsys.readouterr().err)
+
+    return fails_with_message_context
 
 
 @pytest.fixture(autouse=True)
