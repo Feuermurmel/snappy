@@ -38,6 +38,22 @@ def test_error_config_file_invalid_syntax(
         snappy_command('--auto')
 
 
+def test_config_error_keep_spec(
+        snappy_command, fails_with_message, mocked_config_file):
+    # Just check one specific case to check that these kinds of errors are
+    # correctly handled.
+    mocked_config_file.write_text(
+        f'[[snapshot]]\n'
+        f'datasets = []\n'
+        f'\n'
+        f'[snapshot.prune]\n'
+        f'keep = ["1w:1w"]\n')
+
+    with fails_with_message(
+            'Invalid value in field "snapshot.prune.keep": Invalid count `1w\''):
+        snappy_command('--auto')
+
+
 def test_config_error_validation(
         snappy_command, fails_with_message, mocked_config_file):
     # Just check one specific case to check that these kinds of errors are

@@ -62,3 +62,8 @@ def test_invalid_argument_combinations(snappy_command, fails_with_message):
 
     with fails_with_message('--prune-only requires --keep'):
         snappy_command('-p foo')
+
+
+def test_invalid_keep_spec(snappy_command, fails_with_message):
+    with fails_with_message('argument -k/--keep: Missing count or interval.'):
+        snappy_command('-k w')

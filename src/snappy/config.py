@@ -46,6 +46,21 @@ class IntervalKeepSpec:
 KeepSpec: TypeAlias = Union[MostRecentKeepSpec, IntervalKeepSpec]
 
 
+# A bit of a hack that works both with dacite and argparse to produce sensible
+# error messages.
+class ValidationError(ArgumentTypeError, dacite.DaciteFieldError):
+    def __init__(self, message: str):
+        super().__init__(None)
+
+        self.message = message
+
+    def __str__(self):
+        if self.field_path is None:
+            return self.message
+
+        return f'Invalid value in field "{self.field_path}": {self.message}'
+
+
 _units = {
     's': timedelta(seconds=1),
     'm': timedelta(minutes=1),
@@ -60,13 +75,13 @@ def parse_keep_spec(value: str) -> KeepSpec:
     number_str, unit_str, count_str = match.groups()
 
     if not number_str:
-        raise ArgumentTypeError('Missing count or interval.')
+        raise ValidationError('Missing count or interval.')
 
     number = int(number_str)
 
     if unit_str == '':
         if count_str is not None:
-            raise ArgumentTypeError(
+            raise ValidationError(
                 'Only a time interval can be followed by a `:\'.')
 
         return MostRecentKeepSpec(number)
@@ -74,13 +89,13 @@ def parse_keep_spec(value: str) -> KeepSpec:
         unit = _units.get(unit_str)
 
         if unit is None:
-            raise ArgumentTypeError(f'Unknown unit `{unit_str}\'.')
+            raise ValidationError(f'Unknown unit `{unit_str}\'.')
 
         if number == 0:
-            raise ArgumentTypeError('Interval must be non-zero.')
+            raise ValidationError('Interval must be non-zero.')
 
         if count_str == '':
-            raise ArgumentTypeError('Missing count after `:\'.')
+            raise ValidationError('Missing count after `:\'.')
 
         if count_str is None:
             count = None
@@ -88,7 +103,7 @@ def parse_keep_spec(value: str) -> KeepSpec:
             try:
                 count = int(count_str)
             except ValueError:
-                raise ArgumentTypeError(f'Invalid count `{count_str}\'.')
+                raise ValidationError(f'Invalid count `{count_str}\'.')
 
         return IntervalKeepSpec(number * unit, count)
 
@@ -110,5 +125,5 @@ def _load_config(path: Path) -> Config:
 def load_config(path: Path) -> Config:
     try:
         return _load_config(path)
-    except (FileNotFoundError, toml.decoder.TomlDecodeError) as e:
+    except (FileNotFoundError, toml.TomlDecodeError, dacite.DaciteError) as e:
         raise UserError(f'Error loading config file `{path}\': {e}')
