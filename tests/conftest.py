@@ -3,6 +3,7 @@ from __future__ import annotations
 import itertools
 import shlex
 import subprocess
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -29,8 +30,10 @@ def get_mount_point(filesystem: str) -> Path:
     return Path(mount_point)
 
 
-def list_snapshots(filesystem: str) -> list[str]:
-    return zfs('list', '-Hpr', '-d', '1', '-t', 'snapshot', '-o', 'name', filesystem)
+def get_snapshots(filesystem: str) -> list[str]:
+    return [
+        i.removeprefix(f'{filesystem}@')
+        for i in zfs('list', '-Hpr', '-d', '1', '-t', 'snapshot', '-o', 'name', filesystem)]
 
 
 def cleanup_temp_zpool():
@@ -55,19 +58,34 @@ def temp_zpool():
     cleanup_temp_zpool()
 
 
-temp_filesystem_counter = itertools.count(1)
+@pytest.fixture
+def temp_filesystems(temp_zpool):
+    temp_filesystem_counter = itertools.count(1)
+
+    @contextmanager
+    def temp_filesystems_fixture():
+        seq = next(temp_filesystem_counter)
+        name = f'{temp_zpool}/fs{seq}'
+
+        zfs('create', name)
+
+        yield name
+
+        zfs('destroy', '-r', name)
+
+    return temp_filesystems_fixture
 
 
 @pytest.fixture
-def temp_filesystem(temp_zpool):
-    seq = next(temp_filesystem_counter)
-    name = f'{temp_zpool}/fs{seq}'
+def temp_filesystem(temp_filesystems):
+    with temp_filesystems() as name:
+        yield name
 
-    zfs('create', name)
 
-    yield name
-
-    zfs('destroy', '-r', name)
+@pytest.fixture
+def other_temp_filesystem(temp_filesystems):
+    with temp_filesystems() as name:
+        yield name
 
 
 @pytest.fixture
