@@ -38,6 +38,33 @@ def test_error_config_file_invalid_syntax(
         snappy_command('--auto')
 
 
+def test_config_error_validation(
+        snappy_command, fails_with_message, mocked_config_file):
+    # Just check one specific case to check that these kinds of errors are
+    # correctly handled.
+    mocked_config_file.write_text(
+        f'[[snapshot]]\n'
+        f'datasets = []\n'
+        f'prune_only = true\n')
+
+    with fails_with_message(
+            'Key `prune\' is required if `prune_only\' is set to true'):
+        snappy_command('--auto')
+
+
+def test_config_error_dacite_deserialization(
+        snappy_command, fails_with_message, mocked_config_file):
+    # Just check one specific case to check that these kinds of errors are
+    # correctly handled.
+    mocked_config_file.write_text(
+        f'[[snapshot]]\n'
+        f'datasets = [123]\n')
+
+    with fails_with_message(
+            'wrong value type for field "snapshot.datasets" - should be "list"'):
+        snappy_command('--auto')
+
+
 def test_auto(snappy_command, mocked_config_file, temp_filesystem):
     child_filesystem = f'{temp_filesystem}/child'
     zfs('create', child_filesystem)
@@ -57,3 +84,18 @@ def test_auto(snappy_command, mocked_config_file, temp_filesystem):
     expected_snapshots = ['snappy-2001-02-03-091500', 'snappy-2001-02-03-101500']
     assert get_snapshots(temp_filesystem) == expected_snapshots
     assert get_snapshots(child_filesystem) == expected_snapshots
+
+
+def test_two_jobs(
+        snappy_command, mocked_config_file, temp_filesystem,
+        other_temp_filesystem):
+    mocked_config_file.write_text(
+        f'[[snapshot]]\n'
+        f'datasets = ["{temp_filesystem}"]\n'
+        f'[[snapshot]]\n'
+        f'datasets = ["{other_temp_filesystem}"]\n')
+
+    snappy_command('--auto')
+
+    assert get_snapshots(temp_filesystem) == ['snappy-2001-02-03-081500']
+    assert get_snapshots(other_temp_filesystem) == ['snappy-2001-02-03-091500']
