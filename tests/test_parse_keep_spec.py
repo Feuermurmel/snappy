@@ -3,7 +3,7 @@ from datetime import timedelta
 
 import pytest
 
-from snappy import _keep_spec, MostRecentKeepSpec, IntervalKeepSpec
+from snappy.config import parse_keep_spec, MostRecentKeepSpec, IntervalKeepSpec
 
 
 @pytest.mark.parametrize(
@@ -29,6 +29,11 @@ from snappy import _keep_spec, MostRecentKeepSpec, IntervalKeepSpec
 def test_parse_keep_spec(value, result):
     if isinstance(result, str):
         with pytest.raises(ArgumentTypeError, match=result):
-            _keep_spec(value)
+            parse_keep_spec(value)
     else:
-        assert _keep_spec(value) == result
+        assert parse_keep_spec(value) == result
+
+
+def test_parse_error_printed(snappy_command, fails_with_message):
+    with fails_with_message('Invalid count `1w\''):
+        snappy_command('-k 1w:1w')

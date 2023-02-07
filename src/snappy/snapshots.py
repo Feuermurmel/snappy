@@ -2,12 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from datetime import timedelta
 from itertools import groupby, islice
 from typing import Iterator
 
-from typing_extensions import TypeAlias
-
+from snappy.config import KeepSpec, MostRecentKeepSpec
 from snappy.zfs import list_snapshots
 
 
@@ -16,20 +14,6 @@ _timestamp_format = '%Y-%m-%d-%H%M%S'
 
 # Using this day, because that year incidentally starts with a monday.
 _keep_interval_time_base = datetime(2001, 1, 1)
-
-
-@dataclass
-class MostRecentKeepSpec:
-    count: int
-
-
-@dataclass
-class IntervalKeepSpec:
-    interval: timedelta
-    count: int | None
-
-
-KeepSpec: TypeAlias = 'MostRecentKeepSpec | IntervalKeepSpec'
 
 
 @dataclass(frozen=True)

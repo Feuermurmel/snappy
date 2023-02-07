@@ -1,60 +1,11 @@
 import argparse
 import logging
-import re
 import sys
-from argparse import Namespace, ArgumentTypeError
-from datetime import timedelta
+from argparse import Namespace
 
+from snappy.config import parse_keep_spec
 from snappy.snappy import main
-from snappy.snapshots import KeepSpec, MostRecentKeepSpec, IntervalKeepSpec
 from snappy.utils import BetterHelpFormatter
-
-
-_units = {
-    's': timedelta(seconds=1),
-    'm': timedelta(minutes=1),
-    'h': timedelta(hours=1),
-    'd': timedelta(days=1),
-    'w': timedelta(weeks=1)}
-
-
-def _keep_spec(value: str) -> KeepSpec:
-    match = re.fullmatch('([0-9]*)([^:]*?)(?::(.*))?', value)
-    assert match
-    number_str, unit_str, count_str = match.groups()
-
-    if not number_str:
-        raise ArgumentTypeError('Missing count or interval.')
-
-    number = int(number_str)
-
-    if unit_str == '':
-        if count_str is not None:
-            raise ArgumentTypeError(
-                'Only a time interval can be followed by a `:\'.')
-
-        return MostRecentKeepSpec(number)
-    else:
-        unit = _units.get(unit_str)
-
-        if unit is None:
-            raise ArgumentTypeError(f'Unknown unit `{unit_str}\'.')
-
-        if number == 0:
-            raise ArgumentTypeError('Interval must be non-zero.')
-
-        if count_str == '':
-            raise ArgumentTypeError('Missing count after `:\'.')
-
-        if count_str is None:
-            count = None
-        else:
-            try:
-                count = int(count_str)
-            except ValueError:
-                raise ArgumentTypeError(f'Invalid count `{count_str}\'.')
-
-        return IntervalKeepSpec(number * unit, count)
 
 
 def _parse_args() -> Namespace:
@@ -87,7 +38,7 @@ def _parse_args() -> Namespace:
     parser.add_argument(
         '-k',
         '--keep',
-        type=_keep_spec,
+        type=parse_keep_spec,
         dest='keep_specs',
         action='append',
         metavar='KEEP SPECIFICATION',

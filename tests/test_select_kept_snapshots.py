@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from snappy import _keep_spec
+from snappy import parse_keep_spec
 from snappy.snapshots import SnapshotInfo, select_snapshots_to_keep
 
 
@@ -26,7 +26,7 @@ snapshots = [
 
 def check_kept_snapshots(
         keep_spec_strs: list[str], expected_selected_snapshots: list[str]):
-    keep_specs = [_keep_spec(i) for i in keep_spec_strs]
+    keep_specs = [parse_keep_spec(i) for i in keep_spec_strs]
 
     expected_selected_snapshot_timestamps = {
         datetime.fromisoformat(i)
