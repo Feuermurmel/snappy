@@ -115,11 +115,12 @@ def get_default_config_path() -> Path:
     return Path('/etc/snappy/snappy.toml')
 
 
+_dacite_config = dacite.Config(type_hooks=_dacite_type_hooks)  # type: ignore
+
+
 # Can be mocked from tests.
 def _load_config(path: Path) -> Config:
-    dacite_config = dacite.Config(type_hooks=_dacite_type_hooks)  # type: ignore
-
-    return dacite.from_dict(Config, toml.load(path), dacite_config)
+    return dacite.from_dict(Config, toml.load(path), _dacite_config)
 
 
 def load_config(path: Path) -> Config:

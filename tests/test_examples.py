@@ -6,7 +6,10 @@ from snappy.config import load_config
 project_root_path = Path(__file__).parent.parent
 
 
-def test_example_config_valid():
+def test_example_config_valid(monkeypatch):
+    # Detect misspelled keys.
+    monkeypatch.setattr('snappy.config._dacite_config.strict', True)
+
     # Simply check that loading the config file doesn't throw an exception.
     load_config(project_root_path / 'docs/example_config/snappy.toml')
 
