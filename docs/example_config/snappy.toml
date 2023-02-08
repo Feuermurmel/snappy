@@ -1,7 +1,15 @@
 [[snapshot]]
-datasets = ["qnap-data"]
+datasets = ["fishtank"]
 recursive = true
-prune_only = false
 
 [snapshot.prune]
 keep = ['10', '1h:24', '1d:30', '4w']
+
+
+[[snapshot]]
+datasets = ["thinktank"]
+recursive = false  # The default.
+prune_only = true
+
+[snapshot.prune]
+keep = ['1w']
