@@ -44,14 +44,15 @@ def _parse_args() -> Namespace:
         action='append',
         default=[],
         metavar='KEEP SPECIFICATION',
-        help='Prune old snapshots after creating a new one. This option can be '
-             'given multiple times to keep additional snapshots in different '
-             'time intervals.')
+        help='Enables pruning old snapshots after creating a new one. This '
+             'option can be given multiple times to keep additional snapshots '
+             'in different time intervals.')
 
     parser.add_argument(
-        '-p',
-        '--prune-only',
-        action='store_true',
+        '-S',
+        '--no-snapshot',
+        dest='take_snapshot',
+        action='store_false',
         help='Disables creating snapshots. Requires --keep.')
 
     parser.add_argument(
@@ -76,9 +77,10 @@ def _parse_args() -> Namespace:
     args = parser.parse_args()
 
     if args.auto:
-        if args.recursive or args.keep_specs or args.prune_only or args.datasets:
+        if args.recursive or args.keep_specs or not args.take_snapshot \
+                or args.datasets:
             parser.error('--auto conflicts with --recursive, --keep, '
-                         '--prune-only and DATASETS.')
+                         '--no-snapshot and DATASETS.')
     else:
         if not args.datasets:
             parser.error('DATASETS is required unless --auto is given.')
@@ -86,8 +88,8 @@ def _parse_args() -> Namespace:
         if args.config_path is not None:
             parser.error('--config requires --auto.')
 
-        if args.prune_only and not args.keep_specs:
-            parser.error('--prune-only requires --keep.')
+        if not args.take_snapshot and not args.keep_specs:
+            parser.error('--no-snapshot requires --keep.')
 
     return args
 

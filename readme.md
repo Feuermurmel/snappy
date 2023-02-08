@@ -1,7 +1,7 @@
 # snappy - Create and prune ZFS snapshots
 
 ```
-usage: snappy [-h] [-r] [-k KEEP SPECIFICATION] [-p] [--auto]
+usage: snappy [-h] [-r] [-k KEEP SPECIFICATION] [-S] [--auto]
               [--config CONFIG_PATH]
               [DATASETS ...]
 
@@ -10,15 +10,15 @@ Create and/or prune snapshots on ZFS filesystems.
 positional arguments:
   DATASETS              Datasets on which to create (and prune) snapshots.
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
   -r, --recursive       Create and prune snapshots recursively on the
                         specified datasets.
   -k KEEP SPECIFICATION, --keep KEEP SPECIFICATION
-                        Prune old snapshots after creating a new one. This
-                        option can be given multiple times to keep additional
-                        snapshots in different time intervals.
-  -p, --prune-only      Disables creating snapshots. Requires --keep.
+                        Enables pruning old snapshots after creating a new
+                        one. This option can be given multiple times to keep
+                        additional snapshots in different time intervals.
+  -S, --no-snapshot     Disables creating snapshots. Requires --keep.
   --auto                Run the snapshot and prune actions specified in the
                         configuration file instead of on the command line.
   --config CONFIG_PATH  Path to the configuration file to use. Requires

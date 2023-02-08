@@ -61,10 +61,10 @@ def test_config_error_validation(
     mocked_config_file.write_text(
         f'[[snapshot]]\n'
         f'datasets = []\n'
-        f'prune_only = true\n')
+        f'take_snapshot = false\n')
 
     with fails_with_message(
-            'Key `prune\' is required if `prune_only\' is set to true'):
+            'Key `prune\' is required if `take_snapshot\' is set to false'):
         snappy_command('--auto')
 
 

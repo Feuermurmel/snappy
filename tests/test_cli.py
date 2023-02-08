@@ -13,11 +13,11 @@ def test_prune(temp_filesystem, snappy_command):
 
     assert len(get_snapshots(temp_filesystem)) == 3
 
-    snappy_command(f'-p -k 1 {temp_filesystem}')
+    snappy_command(f'-S -k 1 {temp_filesystem}')
 
     assert len(get_snapshots(temp_filesystem)) == 1
 
-    snappy_command(f'-p -k 0 {temp_filesystem}')
+    snappy_command(f'-S -k 0 {temp_filesystem}')
 
     assert len(get_snapshots(temp_filesystem)) == 0
 
@@ -60,8 +60,8 @@ def test_invalid_argument_combinations(snappy_command, fails_with_message):
     with fails_with_message('DATASETS is required unless --auto is given'):
         snappy_command('')
 
-    with fails_with_message('--prune-only requires --keep'):
-        snappy_command('-p foo')
+    with fails_with_message('--no-snapshot requires --keep'):
+        snappy_command('-S foo')
 
 
 def test_invalid_keep_spec(snappy_command, fails_with_message):

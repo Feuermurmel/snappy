@@ -38,9 +38,9 @@ def _prune(recursive: bool, keep_specs: list[KeepSpec], datasets: list[str]):
 
 
 def _process_datasets(
-        recursive: bool, keep_specs: list[KeepSpec], prune_only: bool,
+        recursive: bool, keep_specs: list[KeepSpec], take_snapshot: bool,
         datasets: list[str]):
-    if not prune_only:
+    if take_snapshot:
         _snapshot(recursive, datasets)
 
     if keep_specs:
@@ -68,17 +68,17 @@ def _auto_command(config_path: Path | None):
         else:
             keep_specs = []
 
-            if i.prune_only:
+            if not i.take_snapshot:
                 raise raise_config_error(
-                    f'Key `prune\' is required if `prune_only\' is set to true.')
+                    f'Key `prune\' is required if `take_snapshot\' is set to false.')
 
-        _process_datasets(i.recursive, keep_specs, i.prune_only, i.datasets)
+        _process_datasets(i.recursive, keep_specs, i.take_snapshot, i.datasets)
 
 
 def main(
-        recursive: bool, keep_specs: list[KeepSpec], prune_only: bool,
+        recursive: bool, keep_specs: list[KeepSpec], take_snapshot: bool,
         datasets: list[str], auto: bool, config_path: Path | None):
     if auto:
         _auto_command(config_path)
     else:
-        _process_datasets(recursive, keep_specs, prune_only, datasets)
+        _process_datasets(recursive, keep_specs, take_snapshot, datasets)

@@ -23,7 +23,7 @@ class Config:
 class SnapshotConfig:
     datasets: list[str]
     recursive: bool = False
-    prune_only: bool = False
+    take_snapshot: bool = True
     prune: Union[PruneConfig, None] = None
 
 
