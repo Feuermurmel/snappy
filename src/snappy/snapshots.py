@@ -2,10 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from itertools import groupby, islice
-from typing import Iterator
+from typing import Iterable
 
-from snappy.config import KeepSpec, MostRecentKeepSpec
+from snappy.config import KeepSpec, IntervalKeepSpec
 from snappy.zfs import list_snapshots
 
 
@@ -54,21 +53,25 @@ def get_snapshot_infos(dataset: str) -> list[SnapshotInfo]:
 def select_snapshots_to_keep(
         snapshots: list[SnapshotInfo], keep_specs: list[KeepSpec]) \
         -> set[SnapshotInfo]:
-    # Process most recent snapshots first to keep those rather than older ones.
-    snapshots = sorted(snapshots, key=lambda x: x.timestamp, reverse=True)
+    def get_selected_snapshots(spec: KeepSpec) -> list[SnapshotInfo]:
+        # The list of snapshots returned by `zfs list` is from oldest to
+        # newest, but we want to keep newer rather than older snapshots.
+        selected_snapshots: Iterable[SnapshotInfo] = reversed(snapshots)
 
-    def iter_kept_snapshots(spec: KeepSpec) -> Iterator[SnapshotInfo]:
-        if isinstance(spec, MostRecentKeepSpec):
-            return iter(snapshots)
-        else:
-            def get_bucket(snapshot: SnapshotInfo) -> int:
-                return (snapshot.timestamp - _keep_interval_time_base) \
-                       // spec.interval  # type: ignore
+        # Select a subset of snapshots unless we're using a
+        # MostRecentKeepSpec.
+        if isinstance(spec, IntervalKeepSpec):
+            # Because we're iterating form newest to the oldest snapshot,
+            # this will overwrite keep the oldest snapshot within each
+            # bucket defined by the keep specification.
+            first_in_bucket = {
+                (i.timestamp - _keep_interval_time_base) // spec.interval: i
+                for i in selected_snapshots}
 
-            # Get the last (i.e. least recent) snapshot in each bucket.
-            return (j for _, (*_, j) in groupby(snapshots, get_bucket))
+            selected_snapshots = first_in_bucket.values()
+
+        return list(selected_snapshots)[:spec.count]
 
     return {
-        snapshot
-        for spec in keep_specs
-        for snapshot in islice(iter_kept_snapshots(spec), spec.count)}
+        snapshot for keep_spec in keep_specs
+        for snapshot in get_selected_snapshots(keep_spec)}
