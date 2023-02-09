@@ -51,10 +51,7 @@ def _auto_command(config_path: Path | None):
     config = load_config(config_path)
 
     for i in config.snapshot:
-        if i.prune:
-            keep_specs = i.prune.keep
-        else:
-            keep_specs = []
+        keep_specs = i.prune_keep or []
 
         _process_datasets(i.recursive, keep_specs, i.take_snapshot, i.datasets)
 

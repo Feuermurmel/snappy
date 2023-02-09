@@ -5,7 +5,7 @@ from argparse import ArgumentTypeError
 from dataclasses import dataclass, field
 from datetime import timedelta
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 from typing_extensions import Never
 import dacite
@@ -25,12 +25,7 @@ class SnapshotConfig:
     datasets: list[str]
     recursive: bool = False
     take_snapshot: bool = True
-    prune: Union[PruneConfig, None] = None
-
-
-@dataclass
-class PruneConfig:
-    keep: list[KeepSpec]
+    prune_keep: Optional[list[KeepSpec]] = None
 
 
 @dataclass
@@ -121,14 +116,15 @@ def _validate_config(config: Config, config_path: Path):
         raise UserError(f'Error in config file `{config_path}\': {message}')
 
     for i in config.snapshot:
-        if i.prune:
-            if not i.prune.keep:
+        if i.prune_keep is None:
+            if not i.take_snapshot:
                 raise raise_error(
-                    f'`keep_specs\' cannot be empty. Set `keep_specs\' to '
-                    f'["0"] to explicitly prune all snapshots.')
-        elif not i.take_snapshot:
+                    f'Key `prune_keep\' is required if `take_snapshot\' is set '
+                    f'to false.')
+        elif not i.prune_keep:
             raise raise_error(
-                f'Key `prune\' is required if `take_snapshot\' is set to false.')
+                f'`prune_keep\' cannot be an empty list. Set `keep_specs\' to '
+                f'["0"] to explicitly prune all snapshots.')
 
 
 _dacite_config = dacite.Config(type_hooks=_dacite_type_hooks)  # type: ignore

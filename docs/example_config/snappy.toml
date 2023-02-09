@@ -1,15 +1,11 @@
 [[snapshot]]
 datasets = ["fishtank"]
 recursive = true
-
-[snapshot.prune]
-keep = ['10', '1h:24', '1d:30', '4w']
+prune_keep = ['10', '1h:24', '1d:30', '4w']
 
 
 [[snapshot]]
 datasets = ["thinktank"]
 recursive = false  # The default.
 take_snapshot = false
-
-[snapshot.prune]
-keep = ['1w']
+prune_keep = ['1w']

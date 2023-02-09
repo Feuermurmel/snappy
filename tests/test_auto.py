@@ -46,8 +46,7 @@ def test_config_error_keep_spec(
         f'[[snapshot]]\n'
         f'datasets = []\n'
         f'\n'
-        f'[snapshot.prune]\n'
-        f'keep = ["1w:1w"]\n')
+        f'prune_keep = ["1w:1w"]\n')
 
     with fails_with_message(
             'Invalid value in field "snapshot.prune.keep": Invalid count `1w\''):
@@ -64,7 +63,7 @@ def test_config_error_validation(
         f'take_snapshot = false\n')
 
     with fails_with_message(
-            'Key `prune\' is required if `take_snapshot\' is set to false'):
+            'Key `prune_keep\' is required if `take_snapshot\' is set to false'):
         snappy_command('--auto')
 
 
@@ -89,9 +88,7 @@ def test_auto(snappy_command, mocked_config_file, temp_filesystem):
         f'[[snapshot]]\n'
         f'datasets = ["{temp_filesystem}"]\n'
         f'recursive = true\n'
-        f'\n'
-        f'[snapshot.prune]\n'
-        f'keep = ["1h:2"]\n')
+        f'prune_keep = ["1h:2"]\n')
 
     snappy_command('--auto')
     snappy_command('--auto')
