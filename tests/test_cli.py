@@ -17,10 +17,6 @@ def test_prune(temp_filesystem, snappy_command):
 
     assert len(get_snapshots(temp_filesystem)) == 1
 
-    snappy_command(f'-S -k 0 {temp_filesystem}')
-
-    assert len(get_snapshots(temp_filesystem)) == 0
-
 
 def test_create_and_prune_snapshot(temp_filesystem, snappy_command):
     snappy_command(f'{temp_filesystem}')

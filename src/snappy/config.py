@@ -80,6 +80,9 @@ def parse_keep_spec(value: str) -> KeepSpec:
             raise ValidationError(
                 'Only a time interval can be followed by a `:\'.')
 
+        if number <= 0:
+            raise ValidationError('Count must be non-zero.')
+
         return MostRecentKeepSpec(number)
     else:
         unit = _units.get(unit_str)
@@ -87,19 +90,22 @@ def parse_keep_spec(value: str) -> KeepSpec:
         if unit is None:
             raise ValidationError(f'Unknown unit `{unit_str}\'.')
 
-        if number == 0:
+        if number <= 0:
             raise ValidationError('Interval must be non-zero.')
-
-        if count_str == '':
-            raise ValidationError('Missing count after `:\'.')
 
         if count_str is None:
             count = None
         else:
+            if not count_str:
+                raise ValidationError('Missing count after `:\'.')
+
             try:
                 count = int(count_str)
             except ValueError:
                 raise ValidationError(f'Invalid count `{count_str}\'.')
+
+            if count <= 0:
+                raise ValidationError('Count must be non-zero.')
 
         return IntervalKeepSpec(number * unit, count)
 
@@ -123,8 +129,7 @@ def _validate_config(config: Config, config_path: Path):
                     f'to false.')
         elif not i.prune_keep:
             raise raise_error(
-                f'`prune_keep\' cannot be an empty list. Set `keep_specs\' to '
-                f'["0"] to explicitly prune all snapshots.')
+                f'`prune_keep\' cannot be an empty list.')
 
 
 _dacite_config = dacite.Config(type_hooks=_dacite_type_hooks)  # type: ignore

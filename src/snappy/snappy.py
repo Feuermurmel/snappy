@@ -28,19 +28,21 @@ def _prune(recursive: bool, keep_specs: list[KeepSpec], datasets: list[str]):
         snapshots = get_snapshot_infos(dataset)
 
         selected_snapshots = select_snapshots_to_keep(snapshots, keep_specs)
-        obsolete_snapshot_names = \
-            [i.name for i in set(snapshots) - selected_snapshots]
+        deleted_snapshot = set(snapshots) - selected_snapshots
 
-        destroy_snapshots(dataset, obsolete_snapshot_names, recursive)
+        # The most recent snapshot should never be deleted by this tool.
+        assert not snapshots or snapshots[-1] not in deleted_snapshot
+
+        destroy_snapshots(dataset, [i.name for i in deleted_snapshot], recursive)
 
 
 def _process_datasets(
-        recursive: bool, keep_specs: list[KeepSpec], take_snapshot: bool,
-        datasets: list[str]):
+        recursive: bool, keep_specs: list[KeepSpec] | None,
+        take_snapshot: bool, datasets: list[str]):
     if take_snapshot:
         _snapshot(recursive, datasets)
 
-    if keep_specs:
+    if keep_specs is not None:
         _prune(recursive, keep_specs, datasets)
 
 
@@ -51,13 +53,11 @@ def _auto_command(config_path: Path | None):
     config = load_config(config_path)
 
     for i in config.snapshot:
-        keep_specs = i.prune_keep or []
-
-        _process_datasets(i.recursive, keep_specs, i.take_snapshot, i.datasets)
+        _process_datasets(i.recursive, i.prune_keep, i.take_snapshot, i.datasets)
 
 
 def main(
-        recursive: bool, keep_specs: list[KeepSpec], take_snapshot: bool,
+        recursive: bool, keep_specs: list[KeepSpec] | None, take_snapshot: bool,
         datasets: list[str], auto: bool, config_path: Path | None):
     if auto:
         _auto_command(config_path)

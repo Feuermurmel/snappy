@@ -42,7 +42,6 @@ def _parse_args() -> Namespace:
         type=parse_keep_spec,
         dest='keep_specs',
         action='append',
-        default=[],
         metavar='KEEP SPECIFICATION',
         help='Enables pruning old snapshots after creating a new one. This '
              'option can be given multiple times to keep additional snapshots '
@@ -88,7 +87,7 @@ def _parse_args() -> Namespace:
         if args.config_path is not None:
             parser.error('--config requires --auto.')
 
-        if not args.take_snapshot and not args.keep_specs:
+        if not args.take_snapshot and args.keep_specs is None:
             parser.error('--no-snapshot requires --keep.')
 
     return args
