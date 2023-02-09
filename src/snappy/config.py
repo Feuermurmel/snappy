@@ -7,6 +7,7 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Union
 
+from typing_extensions import Never
 import dacite
 import toml
 from typing_extensions import TypeAlias
@@ -115,6 +116,21 @@ def get_default_config_path() -> Path:
     return Path('/etc/snappy/snappy.toml')
 
 
+def _validate_config(config: Config, config_path: Path):
+    def raise_error(message: str) -> Never:
+        raise UserError(f'Error in config file `{config_path}\': {message}')
+
+    for i in config.snapshot:
+        if i.prune:
+            if not i.prune.keep:
+                raise raise_error(
+                    f'`keep_specs\' cannot be empty. Set `keep_specs\' to '
+                    f'["0"] to explicitly prune all snapshots.')
+        elif not i.take_snapshot:
+            raise raise_error(
+                f'Key `prune\' is required if `take_snapshot\' is set to false.')
+
+
 _dacite_config = dacite.Config(type_hooks=_dacite_type_hooks)  # type: ignore
 
 
@@ -125,6 +141,10 @@ def _load_config(path: Path) -> Config:
 
 def load_config(path: Path) -> Config:
     try:
-        return _load_config(path)
+        config = _load_config(path)
     except (FileNotFoundError, toml.TomlDecodeError, dacite.DaciteError) as e:
         raise UserError(f'Error loading config file `{path}\': {e}')
+
+    _validate_config(config, path)
+
+    return config

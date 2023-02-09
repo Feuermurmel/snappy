@@ -3,9 +3,6 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from typing_extensions import Never
-
-from snappy.utils import UserError
 from snappy.config import load_config, get_default_config_path, KeepSpec
 from snappy.snapshots import make_snapshot_name, get_snapshot_infos, \
     select_snapshots_to_keep
@@ -53,24 +50,11 @@ def _auto_command(config_path: Path | None):
 
     config = load_config(config_path)
 
-    def raise_config_error(message: str) -> Never:
-        raise UserError(f'Error in config file `{config_path}\': {message}')
-
     for i in config.snapshot:
         if i.prune:
             keep_specs = i.prune.keep
-
-            # TODO: Move validation logic into config module.
-            if not keep_specs:
-                raise raise_config_error(
-                    f'`keep_specs\' cannot be empty. Set `keep_specs\' to '
-                    f'["0"] to explicitly prune all snapshots.')
         else:
             keep_specs = []
-
-            if not i.take_snapshot:
-                raise raise_config_error(
-                    f'Key `prune\' is required if `take_snapshot\' is set to false.')
 
         _process_datasets(i.recursive, keep_specs, i.take_snapshot, i.datasets)
 
