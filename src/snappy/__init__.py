@@ -5,10 +5,21 @@ import logging
 import sys
 from argparse import Namespace
 from pathlib import Path
+from typing import TypeVar, Callable
 
 from snappy.config import get_default_config_path, parse_keep_spec, KeepSpec
 from snappy.snappy import auto_command, cli_command, default_snapshot_name_prefix
 from snappy.utils import BetterHelpFormatter, UserError
+
+
+T = TypeVar('T')
+
+
+def list_arg(parse_fn: Callable[[str], T]) -> Callable[[str], list[T]]:
+    def list_parse_fn(value: str) -> list[T]:
+        return [parse_fn(i) for i in value.split(',')]
+
+    return list_parse_fn
 
 
 def _parse_args() -> Namespace:
@@ -62,12 +73,11 @@ def _parse_args() -> Namespace:
     pruning_group.add_argument(
         '-k',
         '--keep',
-        type=parse_keep_spec,
+        type=list_arg(parse_keep_spec),
         dest='keep_specs',
-        action='append',
         metavar='KEEP_SPECIFICATION',
-        help='Enables pruning old snapshots. This option can be given multiple '
-             'times to keep additional snapshots in different time intervals.')
+        help='Comma-separated list of keep specifications that specify how '
+             'many snapshots to keep in what intervals.')
 
     auto_group = parser.add_argument_group('running from config file')
 

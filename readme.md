@@ -10,7 +10,7 @@ Create and/or prune snapshots on ZFS filesystems.
 positional arguments:
   DATASETS              Datasets on which to create (and prune) snapshots.
 
-options:
+optional arguments:
   -h, --help            show this help message and exit
   -r, --recursive       Create and prune snapshots recursively on the
                         specified datasets.
@@ -22,9 +22,8 @@ options:
 
 pruning:
   -k KEEP_SPECIFICATION, --keep KEEP_SPECIFICATION
-                        Enables pruning old snapshots. This option can be
-                        given multiple times to keep additional snapshots in
-                        different time intervals.
+                        Comma-separated list of keep specifications that
+                        specify how many snapshots to keep in what intervals.
 
 running from config file:
   --auto                Run the snapshot and prune actions specified in the
