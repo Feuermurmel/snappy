@@ -10,7 +10,7 @@ Create and/or prune snapshots on ZFS filesystems.
 positional arguments:
   DATASETS              Datasets on which to create (and prune) snapshots.
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -r, --recursive       Create and prune snapshots recursively on the
                         specified datasets.
@@ -24,28 +24,31 @@ pruning:
   -k KEEP_SPECIFICATION, --keep KEEP_SPECIFICATION
                         Comma-separated list of keep specifications that
                         specify how many snapshots to keep in what intervals.
+                        See https://github.com/Feuermurmel/snappy#pruning.
 
 running from config file:
   --auto                Run the snapshot and prune actions specified in the
                         configuration file instead of on the command line.
   --config CONFIG_PATH  Path to the configuration file to use. Requires
                         --auto. Defaults to `/etc/snappy/snappy.toml'.
-
-KEEP SPECIFICATION
-
-Either a number or a TIME INTERVAL. When a number is given, it specifies to
-keep that many most recent snapshots.
-
-If a time interval is given, it specifies to keep one snapshot per that
-interval. The interval can be followed by a `:' and a number, which specifies
-to keep only that many most recent snapshots taken in that interval.
-
-TIME INTERVAL
-
-A number followed by one of the time units `s', `m', `h', `d', or `w',
-specifying an interval of that many seconds, minutes, hours, days, or weeks
-respectively.
 ```
+
+
+## Pruning
+
+To prune snapshots taken by `snappy`, pass a list of _keep specifications_ to `--keep`:
+
+```
+snappy -k 1d:7,1w:10 fishtank
+```
+
+This would keep daily snapshots for a week and weekly snapshots for 10 weeks.
+
+Each keep specification is either a count like `5` or a time interval like `1w`, optionally followed by a count, like `1w:10`. A count `n` will cause the most recent `n` snapshots to be kept. A time interval `i:n` will cause the earliest snapshot for each interval `i` to be kept, up `n` snapshots, if given.
+
+A time interval is specified as an integer followed by one of the units `s`, `m`, `h`, `d`, or `w`, specifying an interval of that many seconds, minutes, hours, days, or weeks respectively.
+
+A combination of count and interval specifications can be given. If multiple specifications are given, each will select a subset of the existing snapshots and the union of all selected snapshots will be kept, while the others are destroyed.
 
 
 ## Development Setup

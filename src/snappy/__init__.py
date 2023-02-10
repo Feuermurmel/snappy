@@ -25,22 +25,7 @@ def list_arg(parse_fn: Callable[[str], T]) -> Callable[[str], list[T]]:
 def _parse_args() -> Namespace:
     parser = argparse.ArgumentParser(
         formatter_class=BetterHelpFormatter,
-        description='Create and/or prune snapshots on ZFS filesystems.',
-        epilog='KEEP SPECIFICATION\n'
-               '\n'
-               'Either a number or a TIME INTERVAL. When a number is given, it '
-               'specifies to keep that many most recent snapshots.\n'
-               '\n'
-               'If a time interval is given, it specifies to keep one snapshot '
-               'per that interval. The interval can be followed by a `:\' and '
-               'a number, which specifies to keep only that many most recent '
-               'snapshots taken in that interval.\n'
-               '\n'
-               'TIME INTERVAL\n'
-               '\n'
-               'A number followed by one of the time units `s\', `m\', `h\', '
-               '`d\', or `w\', specifying an interval of that many seconds, '
-               'minutes, hours, days, or weeks respectively.')
+        description='Create and/or prune snapshots on ZFS filesystems.')
 
     parser.add_argument(
         '-r',
@@ -77,7 +62,8 @@ def _parse_args() -> Namespace:
         dest='keep_specs',
         metavar='KEEP_SPECIFICATION',
         help='Comma-separated list of keep specifications that specify how '
-             'many snapshots to keep in what intervals.')
+             'many snapshots to keep in what intervals.\n'
+             'See https://github.com/Feuermurmel/snappy#pruning.')
 
     auto_group = parser.add_argument_group('running from config file')
 
