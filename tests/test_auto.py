@@ -106,9 +106,10 @@ def test_two_jobs(
         f'[[snapshot]]\n'
         f'datasets = ["{temp_filesystem}"]\n'
         f'[[snapshot]]\n'
-        f'datasets = ["{other_temp_filesystem}"]\n')
+        f'datasets = ["{other_temp_filesystem}"]\n'
+        f'prefix = "foo"\n')
 
     snappy_command('--auto')
 
     assert get_snapshots(temp_filesystem) == ['snappy-2001-02-03-081500']
-    assert get_snapshots(other_temp_filesystem) == ['snappy-2001-02-03-091500']
+    assert get_snapshots(other_temp_filesystem) == ['foo-2001-02-03-091500']

@@ -3,6 +3,11 @@ datasets = ["fishtank"]
 recursive = true
 prune_keep = ['10', '1h:24', '1d:30', '4w']
 
+[[snapshot]]
+datasets = ["fishtank"]
+prefix = "backup"
+recursive = true
+prune_keep = ['10', '1h:24', '1d:30', '4w']
 
 [[snapshot]]
 datasets = ["thinktank"]

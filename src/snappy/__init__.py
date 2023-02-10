@@ -7,7 +7,7 @@ from argparse import Namespace
 from pathlib import Path
 
 from snappy.config import get_default_config_path, parse_keep_spec, KeepSpec
-from snappy.snappy import auto_command, cli_command
+from snappy.snappy import auto_command, cli_command, default_snapshot_name_prefix
 from snappy.utils import BetterHelpFormatter, UserError
 
 
@@ -37,6 +37,13 @@ def _parse_args() -> Namespace:
         action='store_true',
         help='Create and prune snapshots recursively on the specified '
              'datasets.')
+
+    parser.add_argument(
+        '-p',
+        '--prefix',
+        help=f'Use a different prefix for the snapshot names. This prefix is '
+             f'used when creating snapshots but also when selecting snapshots '
+             f'for pruning. Defaults to `{default_snapshot_name_prefix}\'.')
 
     parser.add_argument(
         '-k',
@@ -78,9 +85,9 @@ def _parse_args() -> Namespace:
     args = parser.parse_args()
 
     if args.auto:
-        if args.recursive or args.keep_specs or not args.take_snapshot \
-                or args.datasets:
-            parser.error('--auto conflicts with --recursive, --keep, '
+        if args.recursive or args.prefix is not None or args.keep_specs \
+                or not args.take_snapshot or args.datasets:
+            parser.error('--auto conflicts with --recursive, --prefix, --keep, '
                          '--no-snapshot and DATASETS.')
     else:
         if not args.datasets:
@@ -96,12 +103,13 @@ def _parse_args() -> Namespace:
 
 
 def main(
-        recursive: bool, keep_specs: list[KeepSpec] | None, take_snapshot: bool,
-        datasets: list[str], auto: bool, config_path: Path | None):
+        datasets: list[str], recursive: bool, prefix: str | None,
+        keep_specs: list[KeepSpec] | None, take_snapshot: bool, auto: bool,
+        config_path: Path | None):
     if auto:
         auto_command(config_path)
     else:
-        cli_command(recursive, keep_specs, take_snapshot, datasets)
+        cli_command(datasets, recursive, prefix, keep_specs, take_snapshot)
 
 
 def entry_point():

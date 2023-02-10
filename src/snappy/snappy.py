@@ -9,6 +9,9 @@ from snappy.snapshots import make_snapshot_name, get_snapshot_infos, \
 from snappy.zfs import crate_snapshot, destroy_snapshots
 
 
+default_snapshot_name_prefix = 'snappy'
+
+
 def _datetime_now():
     """
     Simple wrapper for `datetime.now()`. Allows the current time to be mocked
@@ -17,15 +20,17 @@ def _datetime_now():
     return datetime.now()
 
 
-def _snapshot(recursive: bool, datasets: list[str]):
-    snapshot_name = make_snapshot_name(_datetime_now())
+def _snapshot(datasets: list[str], recursive: bool, prefix: str):
+    snapshot_name = make_snapshot_name(prefix, _datetime_now())
 
     crate_snapshot([f'{i}@{snapshot_name}' for i in datasets], recursive)
 
 
-def _prune(recursive: bool, keep_specs: list[KeepSpec], datasets: list[str]):
+def _prune(
+        datasets: list[str], recursive: bool, prefix: str,
+        keep_specs: list[KeepSpec]):
     for dataset in datasets:
-        snapshots = get_snapshot_infos(dataset)
+        snapshots = get_snapshot_infos(dataset, prefix)
 
         selected_snapshots = select_snapshots_to_keep(snapshots, keep_specs)
         deleted_snapshot = set(snapshots) - selected_snapshots
@@ -37,13 +42,16 @@ def _prune(recursive: bool, keep_specs: list[KeepSpec], datasets: list[str]):
 
 
 def cli_command(
-        recursive: bool, keep_specs: list[KeepSpec] | None, take_snapshot: bool,
-        datasets: list[str]):
+        datasets: list[str], recursive: bool, prefix: str | None,
+        keep_specs: list[KeepSpec] | None, take_snapshot: bool):
+    if prefix is None:
+        prefix = default_snapshot_name_prefix
+
     if take_snapshot:
-        _snapshot(recursive, datasets)
+        _snapshot(datasets, recursive, prefix)
 
     if keep_specs is not None:
-        _prune(recursive, keep_specs, datasets)
+        _prune(datasets, recursive, prefix, keep_specs)
 
 
 def auto_command(config_path: Path | None):
@@ -53,4 +61,4 @@ def auto_command(config_path: Path | None):
     config = load_config(config_path)
 
     for i in config.snapshot:
-        cli_command(i.recursive, i.prune_keep, i.take_snapshot, i.datasets)
+        cli_command(i.datasets, i.recursive, i.prefix, i.prune_keep, i.take_snapshot)

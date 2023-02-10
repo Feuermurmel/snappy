@@ -24,8 +24,9 @@ class Config:
 class SnapshotConfig:
     datasets: list[str]
     recursive: bool = False
-    take_snapshot: bool = True
+    prefix: Optional[str] = None
     prune_keep: Optional[list[KeepSpec]] = None
+    take_snapshot: bool = True
 
 
 @dataclass

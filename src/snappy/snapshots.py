@@ -8,7 +8,6 @@ from snappy.config import KeepSpec, IntervalKeepSpec
 from snappy.zfs import list_snapshots
 
 
-_snapshot_name_prefix = 'snappy-'
 _timestamp_format = '%Y-%m-%d-%H%M%S'
 
 # Using this day, because that year incidentally starts with a monday.
@@ -21,28 +20,30 @@ class SnapshotInfo:
     timestamp: datetime
 
 
-def make_snapshot_name(timestamp: datetime) -> str:
-    return _snapshot_name_prefix + timestamp.strftime(_timestamp_format)
+def make_snapshot_name(prefix: str, timestamp: datetime) -> str:
+    return f'{prefix}-{timestamp.strftime(_timestamp_format)}'
 
 
-def parse_snapshot_name(name: str) -> SnapshotInfo | None:
-    if not name.startswith(_snapshot_name_prefix):
+def parse_snapshot_name(prefix: str, name: str) -> SnapshotInfo | None:
+    full_prefix = f'{prefix}-'
+
+    if not name.startswith(full_prefix):
         return None
 
     try:
         timestamp = datetime.strptime(
-            name.removeprefix(_snapshot_name_prefix), _timestamp_format)
+            name.removeprefix(full_prefix), _timestamp_format)
 
         return SnapshotInfo(name, timestamp)
     except ValueError:
         return None
 
 
-def get_snapshot_infos(dataset: str) -> list[SnapshotInfo]:
+def get_snapshot_infos(dataset: str, prefix: str) -> list[SnapshotInfo]:
     snapshots = list[SnapshotInfo]()
 
     for i in list_snapshots(dataset):
-        snapshot = parse_snapshot_name(i)
+        snapshot = parse_snapshot_name(prefix, i)
 
         if snapshot is not None:
             snapshots.append(snapshot)
