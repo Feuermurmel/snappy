@@ -41,46 +41,48 @@ def _parse_args() -> Namespace:
     parser.add_argument(
         '-p',
         '--prefix',
-        help=f'Use a different prefix for the snapshot names. This prefix is '
-             f'used when creating snapshots but also when selecting snapshots '
-             f'for pruning. Defaults to `{default_snapshot_name_prefix}\'.')
-
-    parser.add_argument(
-        '-k',
-        '--keep',
-        type=parse_keep_spec,
-        dest='keep_specs',
-        action='append',
-        metavar='KEEP SPECIFICATION',
-        help='Enables pruning old snapshots after creating a new one. This '
-             'option can be given multiple times to keep additional snapshots '
-             'in different time intervals.')
+        help=f'Prefix of snapshot names of created and pruned snapshots. '
+             f'Defaults to `{default_snapshot_name_prefix}\'.')
 
     parser.add_argument(
         '-S',
         '--no-snapshot',
         dest='take_snapshot',
         action='store_false',
-        help='Disables creating snapshots. Requires --keep.')
-
-    parser.add_argument(
-        '--auto',
-        action='store_true',
-        help='Run the snapshot and prune actions specified in the '
-             'configuration file instead of on the command line.')
-
-    parser.add_argument(
-        '--config',
-        type=Path,
-        dest='config_path',
-        help=f'Path to the configuration file to use. Requires --auto. '
-             f'Defaults to `{get_default_config_path()}\'.')
+        help='Disables creating snapshots. Instead, only prune snapshots.')
 
     parser.add_argument(
         'datasets',
         nargs='*',
         metavar='DATASETS',
         help='Datasets on which to create (and prune) snapshots.')
+
+    pruning_group = parser.add_argument_group('pruning')
+
+    pruning_group.add_argument(
+        '-k',
+        '--keep',
+        type=parse_keep_spec,
+        dest='keep_specs',
+        action='append',
+        metavar='KEEP_SPECIFICATION',
+        help='Enables pruning old snapshots. This option can be given multiple '
+             'times to keep additional snapshots in different time intervals.')
+
+    auto_group = parser.add_argument_group('running from config file')
+
+    auto_group.add_argument(
+        '--auto',
+        action='store_true',
+        help='Run the snapshot and prune actions specified in the '
+             'configuration file instead of on the command line.')
+
+    auto_group.add_argument(
+        '--config',
+        type=Path,
+        dest='config_path',
+        help=f'Path to the configuration file to use. Requires --auto. '
+             f'Defaults to `{get_default_config_path()}\'.')
 
     args = parser.parse_args()
 
