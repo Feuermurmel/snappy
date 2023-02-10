@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 import argparse
 import logging
 import sys
 from argparse import Namespace
 from pathlib import Path
 
-from snappy.config import get_default_config_path, parse_keep_spec
-from snappy.snappy import main
+from snappy.config import get_default_config_path, parse_keep_spec, KeepSpec
+from snappy.snappy import auto_command, cli_command
 from snappy.utils import BetterHelpFormatter, UserError
 
 
@@ -91,6 +93,15 @@ def _parse_args() -> Namespace:
             parser.error('--no-snapshot requires --keep.')
 
     return args
+
+
+def main(
+        recursive: bool, keep_specs: list[KeepSpec] | None, take_snapshot: bool,
+        datasets: list[str], auto: bool, config_path: Path | None):
+    if auto:
+        auto_command(config_path)
+    else:
+        cli_command(recursive, keep_specs, take_snapshot, datasets)
 
 
 def entry_point():

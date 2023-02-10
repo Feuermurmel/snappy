@@ -36,9 +36,9 @@ def _prune(recursive: bool, keep_specs: list[KeepSpec], datasets: list[str]):
         destroy_snapshots(dataset, [i.name for i in deleted_snapshot], recursive)
 
 
-def _process_datasets(
-        recursive: bool, keep_specs: list[KeepSpec] | None,
-        take_snapshot: bool, datasets: list[str]):
+def cli_command(
+        recursive: bool, keep_specs: list[KeepSpec] | None, take_snapshot: bool,
+        datasets: list[str]):
     if take_snapshot:
         _snapshot(recursive, datasets)
 
@@ -46,20 +46,11 @@ def _process_datasets(
         _prune(recursive, keep_specs, datasets)
 
 
-def _auto_command(config_path: Path | None):
+def auto_command(config_path: Path | None):
     if config_path is None:
         config_path = get_default_config_path()
 
     config = load_config(config_path)
 
     for i in config.snapshot:
-        _process_datasets(i.recursive, i.prune_keep, i.take_snapshot, i.datasets)
-
-
-def main(
-        recursive: bool, keep_specs: list[KeepSpec] | None, take_snapshot: bool,
-        datasets: list[str], auto: bool, config_path: Path | None):
-    if auto:
-        _auto_command(config_path)
-    else:
-        _process_datasets(recursive, keep_specs, take_snapshot, datasets)
+        cli_command(i.recursive, i.prune_keep, i.take_snapshot, i.datasets)
