@@ -2,6 +2,7 @@
 datasets = ["fishtank"]
 recursive = true
 prune_keep = ['10', '1h:24', '1d:30', '4w']
+pre_snapshot_script = "rsync -avx / /fishtank/rootfs"
 
 [[snapshot]]
 datasets = ["fishtank"]

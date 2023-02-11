@@ -10,7 +10,9 @@ from pathlib import Path
 
 import pytest
 
+import snappy.config
 from snappy import entry_point
+from snappy.config import Config
 
 
 temp_zpool_vdev_path = Path('/dev/shm/snappy-test-vdev')
@@ -126,3 +128,16 @@ def mocked_datetime_now(monkeypatch):
         return now
 
     monkeypatch.setattr('snappy.snappy._datetime_now', mock_datetime_now)
+
+
+@pytest.fixture
+def mocked_config_file(monkeypatch, tmp_path):
+    config_path = tmp_path / 'mocked_config_file.toml'
+
+    def mock_load_config(path: Path) -> Config:
+        return orig_load_config(config_path)
+
+    orig_load_config = snappy.config._load_config
+    monkeypatch.setattr('snappy.config._load_config', mock_load_config)
+
+    return config_path

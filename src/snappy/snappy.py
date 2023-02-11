@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import subprocess
 from datetime import datetime
 from pathlib import Path
+from subprocess import CalledProcessError
 
+from snappy.utils import UserError
 from snappy.config import load_config, get_default_config_path, KeepSpec
 from snappy.snapshots import make_snapshot_name, get_snapshot_infos, \
     select_snapshots_to_keep
@@ -18,6 +21,14 @@ def _datetime_now():
     from tests.
     """
     return datetime.now()
+
+
+def _run_script(script: str):
+    try:
+        subprocess.check_call(script, shell=True)
+    except CalledProcessError as e:
+        raise UserError(
+            f'Pre-snapshot script failed with exit code {e.returncode}.')
 
 
 def _snapshot(datasets: list[str], recursive: bool, prefix: str):
@@ -43,9 +54,13 @@ def _prune(
 
 def cli_command(
         datasets: list[str], recursive: bool, prefix: str | None,
-        keep_specs: list[KeepSpec] | None, take_snapshot: bool):
+        keep_specs: list[KeepSpec] | None, take_snapshot: bool,
+        pre_snapshot_script: str | None = None):
     if prefix is None:
         prefix = default_snapshot_name_prefix
+
+    if pre_snapshot_script is not None:
+        _run_script(pre_snapshot_script)
 
     if take_snapshot:
         _snapshot(datasets, recursive, prefix)
@@ -61,4 +76,6 @@ def auto_command(config_path: Path | None):
     config = load_config(config_path)
 
     for i in config.snapshot:
-        cli_command(i.datasets, i.recursive, i.prefix, i.prune_keep, i.take_snapshot)
+        cli_command(
+            i.datasets, i.recursive, i.prefix, i.prune_keep, i.take_snapshot,
+            i.pre_snapshot_script)

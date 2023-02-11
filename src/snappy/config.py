@@ -26,6 +26,7 @@ class SnapshotConfig:
     prefix: Optional[str] = None
     prune_keep: Optional[list[KeepSpec]] = None
     take_snapshot: bool = True
+    pre_snapshot_script: Optional[str] = None
 
 
 @dataclass
@@ -129,6 +130,10 @@ def _validate_config(config: Config, config_path: Path):
 
         check(i.prune_keep is None or i.prune_keep,
               f'`prune_keep\' cannot be an empty list.')
+
+        check(i.pre_snapshot_script is None or i.take_snapshot,
+              f'Key `pre_snapshot_script\' requires that `take_snapshot\' is '
+              f'set to true')
 
 
 _dacite_config = dacite.Config(type_hooks=_dacite_type_hooks)  # type: ignore

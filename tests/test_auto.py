@@ -1,23 +1,4 @@
-from pathlib import Path
-
-import pytest
-
-import snappy.config
 from conftest import get_snapshots, zfs
-from snappy.config import Config
-
-
-@pytest.fixture
-def mocked_config_file(monkeypatch, tmp_path):
-    config_path = tmp_path / 'mocked_config_file.toml'
-
-    def mock_load_config(path: Path) -> Config:
-        return orig_load_config(config_path)
-
-    orig_load_config = snappy.config._load_config
-    monkeypatch.setattr('snappy.config._load_config', mock_load_config)
-
-    return config_path
 
 
 def test_error_no_config_file_found(
