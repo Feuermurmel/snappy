@@ -1,4 +1,7 @@
+import sys
 from pathlib import Path
+
+import pytest
 
 from snappy.config import load_config
 
@@ -15,6 +18,11 @@ def test_example_config_valid(monkeypatch):
 
 
 def test_readme_contains_usage(capsys, monkeypatch, snappy_command):
+    if sys.version_info <= (3, 10):
+        # The output changed slightly in Python 3.10.
+        # See https://github.com/python/cpython/issues/53903.
+        pytest.skip()
+
     readme_path = project_root_path / 'readme.md'
     monkeypatch.setenv('COLUMNS', '80')
 
