@@ -82,20 +82,24 @@ def _parse_args() -> Namespace:
 
     args = parser.parse_args()
 
+    def check(condition, message):
+        if not condition:
+            parser.error(message)
+
     if args.auto:
-        if args.recursive or args.prefix is not None or args.keep_specs \
-                or not args.take_snapshot or args.datasets:
-            parser.error('--auto conflicts with --recursive, --prefix, --keep, '
-                         '--no-snapshot and DATASETS.')
+        check(not args.recursive and args.prefix is None and not args.keep_specs
+              and args.take_snapshot and not args.datasets,
+              '--auto conflicts with --recursive, --prefix, --keep, '
+              '--no-snapshot and DATASETS.')
     else:
-        if not args.datasets:
-            parser.error('DATASETS is required unless --auto is given.')
+        check(args.datasets,
+              'DATASETS is required unless --auto is given.')
 
-        if args.config_path is not None:
-            parser.error('--config requires --auto.')
+        check(args.config_path is None,
+              '--config requires --auto.')
 
-        if not args.take_snapshot and args.keep_specs is None:
-            parser.error('--no-snapshot requires --keep.')
+        check(args.take_snapshot or args.keep_specs is not None,
+              '--no-snapshot requires --keep.')
 
     return args
 

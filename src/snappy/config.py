@@ -7,7 +7,6 @@ from datetime import timedelta
 from pathlib import Path
 from typing import Union, Optional
 
-from typing_extensions import Never
 import dacite
 import toml
 from typing_extensions import TypeAlias
@@ -119,18 +118,17 @@ def get_default_config_path() -> Path:
 
 
 def _validate_config(config: Config, config_path: Path):
-    def raise_error(message: str) -> Never:
-        raise UserError(f'Error in config file `{config_path}\': {message}')
+    def check(condition, message):
+        if not condition:
+            raise UserError(f'Error in config file `{config_path}\': {message}')
 
     for i in config.snapshot:
-        if i.prune_keep is None:
-            if not i.take_snapshot:
-                raise raise_error(
-                    f'Key `prune_keep\' is required if `take_snapshot\' is set '
-                    f'to false.')
-        elif not i.prune_keep:
-            raise raise_error(
-                f'`prune_keep\' cannot be an empty list.')
+        check(i.take_snapshot or i.prune_keep,
+              f'Key `prune_keep\' is required if `take_snapshot\' is set to '
+              f'false.')
+
+        check(i.prune_keep is None or i.prune_keep,
+              f'`prune_keep\' cannot be an empty list.')
 
 
 _dacite_config = dacite.Config(type_hooks=_dacite_type_hooks)  # type: ignore
