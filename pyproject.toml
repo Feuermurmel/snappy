@@ -1,7 +1,7 @@
 [project]
 name = "snappy"
 version = "0"
-dependencies = ["toml", "dacite"]
+dependencies = ["toml", "dacite", "typing_extensions"]
 
 [project.optional-dependencies]
 dev = ["pytest", "mypy", "types-toml"]
