@@ -36,13 +36,15 @@ running from config file:
 
 ## Pruning
 
-To prune snapshots taken by `snappy`, pass a list of _keep specifications_ to `--keep`:
+`snappy` can be instructed to prune snapshots, to select a set of existing snapshots and destroy the rest. This can happen after creating a new snapshot and/or sending snapshots to a target dataset, as well as on its own.
+
+The set of snapshots to keep is specified using `--keep`, followed by a comma-separated list of keep specifications:
 
 ```
 snappy -k 1d:7,1w:10 fishtank
 ```
 
-This would keep daily snapshots for a week and weekly snapshots for 10 weeks.
+This would keep daily snapshots for a week and weekly snapshots for 10 weeks. As a special case, the most recent snapshot taken is always kept. This is to prevent losing last snapshot that was sent from another dataset, which is necessary to continue with incremental replication.
 
 Each keep specification is either a count like `5` or a time interval like `1w`, optionally followed by a count, like `1w:10`. A count `n` will cause the most recent `n` snapshots to be kept. A time interval `i:n` will cause the earliest snapshot for each interval `i` to be kept, up `n` snapshots, if given.
 

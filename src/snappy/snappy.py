@@ -6,7 +6,7 @@ from pathlib import Path
 from subprocess import CalledProcessError
 
 from snappy.utils import UserError
-from snappy.config import load_config, get_default_config_path, KeepSpec
+from snappy.config import load_config, get_default_config_path, KeepSpec, MostRecentKeepSpec
 from snappy.snapshots import make_snapshot_name, get_snapshot_infos, \
     select_snapshots_to_keep
 from snappy.zfs import crate_snapshot, destroy_snapshots
@@ -41,13 +41,12 @@ def _prune(
         datasets: list[str], recursive: bool, prefix: str,
         keep_specs: list[KeepSpec]):
     for dataset in datasets:
+        # The most recent snapshot should never be deleted by this tool.
+        keep_specs = keep_specs + [MostRecentKeepSpec(1)]
         snapshots = get_snapshot_infos(dataset, prefix)
 
         selected_snapshots = select_snapshots_to_keep(snapshots, keep_specs)
         deleted_snapshot = set(snapshots) - selected_snapshots
-
-        # The most recent snapshot should never be deleted by this tool.
-        assert not snapshots or snapshots[-1] not in deleted_snapshot
 
         destroy_snapshots(dataset, [i.name for i in deleted_snapshot], recursive)
 
