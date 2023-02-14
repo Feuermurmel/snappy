@@ -1,10 +1,10 @@
 import logging
 import subprocess
-from typing import Iterator
 
 
-def crate_snapshot(snapshots: list[str], recursive: bool):
+def create_snapshots(datasets: list[str], snapshot_name: str, recursive: bool):
     recursive_arg = ['-r'] if recursive else []
+    snapshots = [f'{i}@{snapshot_name}' for i in datasets]
 
     logging.info(f'Creating snapshots: {", ".join(snapshots)}')
     subprocess.check_call(['zfs', 'snapshot', *recursive_arg, '--', *snapshots])
@@ -12,27 +12,26 @@ def crate_snapshot(snapshots: list[str], recursive: bool):
 
 def list_snapshots(dataset: str) -> list[str]:
     output = subprocess.check_output(
-        ['zfs', 'list', '-H', '-d', '1', '-t', 'snapshot', '-o', 'name', '--', dataset])
+        ['zfs', 'list', '-Hd1', '-t', 'snapshot', '-o', 'name', '--', dataset],
+        text=True)
 
-    def iter_snapshots() -> Iterator[str]:
-        for i in output.decode().splitlines():
-            dataset_part, snapshot_name = i.split('@')
+    def get_snapshot_name(snapshot: str):
+        dataset_part, snapshot_name = snapshot.split('@')
 
-            assert dataset_part == dataset
+        assert dataset_part == dataset
 
-            yield snapshot_name
+        return snapshot_name
 
-    return list(iter_snapshots())
+    return [get_snapshot_name(i) for i in output.splitlines()]
 
 
 def destroy_snapshots(dataset: str, snapshot_names: list[str], recursive: bool):
     if not snapshot_names:
-        # Nothing to do.
+        # We cant call `zfs destroy` with an empty list of snapshots.
         return
 
     recursive_arg = ['-r'] if recursive else []
+    snapshots_arg = f'{dataset}@{",".join(snapshot_names)}'
 
-    snapshot_arg = f'{dataset}@{",".join(snapshot_names)}'
-
-    logging.info(f'Destroying snapshots: {snapshot_arg}')
-    subprocess.check_call(['zfs', 'destroy', *recursive_arg, '--', snapshot_arg])
+    logging.info(f'Destroying snapshots: {snapshots_arg}')
+    subprocess.check_call(['zfs', 'destroy', *recursive_arg, '--', snapshots_arg])

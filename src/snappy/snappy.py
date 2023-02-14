@@ -9,7 +9,7 @@ from snappy.utils import UserError
 from snappy.config import load_config, get_default_config_path, KeepSpec, MostRecentKeepSpec
 from snappy.snapshots import make_snapshot_name, get_snapshot_infos, \
     select_snapshots_to_keep
-from snappy.zfs import crate_snapshot, destroy_snapshots
+from snappy.zfs import create_snapshots, destroy_snapshots
 
 
 default_snapshot_name_prefix = 'snappy'
@@ -34,7 +34,7 @@ def _run_script(script: str):
 def _snapshot(datasets: list[str], recursive: bool, prefix: str):
     snapshot_name = make_snapshot_name(prefix, _datetime_now())
 
-    crate_snapshot([f'{i}@{snapshot_name}' for i in datasets], recursive)
+    create_snapshots(datasets, snapshot_name, recursive)
 
 
 def _prune(
