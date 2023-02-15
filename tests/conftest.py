@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import itertools
 import re
 import shlex
 import subprocess
@@ -63,41 +62,40 @@ def temp_zpool():
 
 @pytest.fixture
 def temp_filesystems(temp_zpool):
-    temp_filesystem_counter = itertools.count(1)
+    root_temp_filesystem = f'{temp_zpool}/t'
 
-    @contextmanager
-    def temp_filesystems_fixture():
-        seq = next(temp_filesystem_counter)
-        name = f'{temp_zpool}/fs{seq}'
+    zfs('create', root_temp_filesystem)
 
-        zfs('create', name)
+    def temp_filesystems_fixture(basename: str, create: bool = True):
+        name = f'{root_temp_filesystem}/{basename}'
 
-        yield name
+        if create:
+            zfs('create', name)
 
-        zfs('destroy', '-r', name)
+        return name
 
-    return temp_filesystems_fixture
+    yield temp_filesystems_fixture
+
+    zfs('destroy', '-R', root_temp_filesystem)
 
 
 @pytest.fixture
 def temp_filesystem(temp_filesystems):
-    with temp_filesystems() as name:
-        yield name
+    return temp_filesystems('temp')
 
 
 @pytest.fixture
 def other_temp_filesystem(temp_filesystems):
-    with temp_filesystems() as name:
-        yield name
+    return temp_filesystems('other')
 
 
 @pytest.fixture
 def snappy_command(monkeypatch):
-    def command(args: str):
+    def snappy_command_fixture(args: str):
         monkeypatch.setattr('sys.argv', shlex.split(f'snappy {args}'))
         entry_point()
 
-    return command
+    return snappy_command_fixture
 
 
 @pytest.fixture
