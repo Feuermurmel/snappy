@@ -12,6 +12,7 @@ import toml
 from typing_extensions import TypeAlias
 
 from snappy.utils import UserError
+from snappy.zfs import Dataset
 
 
 @dataclass
@@ -21,7 +22,7 @@ class Config:
 
 @dataclass
 class SnapshotConfig:
-    datasets: list[str]
+    datasets: list[Dataset]
     recursive: bool = False
     prefix: Optional[str] = None
     prune_keep: Optional[list[KeepSpec]] = None

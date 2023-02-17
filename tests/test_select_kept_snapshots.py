@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from snappy import parse_keep_spec
+from snappy import parse_keep_spec, Dataset
 from snappy.snapshots import SnapshotInfo, select_snapshots_to_keep
+from snappy.zfs import Snapshot
 
 
 snapshot_timestamps = [
@@ -20,7 +21,7 @@ snapshot_timestamps = [
 
 
 snapshots = [
-    SnapshotInfo(i, datetime.fromisoformat(i))
+    SnapshotInfo(Snapshot(Dataset('dummy'), i), datetime.fromisoformat(i))
     for i in snapshot_timestamps]
 
 

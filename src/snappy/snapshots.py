@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Iterable
 
 from snappy.config import KeepSpec, IntervalKeepSpec
-from snappy.zfs import list_snapshots
+from snappy.zfs import list_snapshots, Snapshot, Dataset
 
 
 _timestamp_format = '%Y-%m-%d-%H%M%S'
@@ -16,7 +16,7 @@ _keep_interval_time_base = datetime(2001, 1, 1)
 
 @dataclass(frozen=True)
 class SnapshotInfo:
-    name: str
+    snapshot: Snapshot
     timestamp: datetime
 
 
@@ -24,26 +24,26 @@ def make_snapshot_name(prefix: str, timestamp: datetime) -> str:
     return f'{prefix}-{timestamp.strftime(_timestamp_format)}'
 
 
-def parse_snapshot_name(prefix: str, name: str) -> SnapshotInfo | None:
+def _info_from_snapshot(snapshot: Snapshot, prefix: str) -> SnapshotInfo | None:
     full_prefix = f'{prefix}-'
 
-    if not name.startswith(full_prefix):
+    if not snapshot.name.startswith(full_prefix):
         return None
 
     try:
         timestamp = datetime.strptime(
-            name.removeprefix(full_prefix), _timestamp_format)
+            snapshot.name.removeprefix(full_prefix), _timestamp_format)
 
-        return SnapshotInfo(name, timestamp)
+        return SnapshotInfo(snapshot, timestamp)
     except ValueError:
         return None
 
 
-def get_snapshot_infos(dataset: str, prefix: str) -> list[SnapshotInfo]:
+def get_snapshot_infos(dataset: Dataset, prefix: str) -> list[SnapshotInfo]:
     snapshots = list[SnapshotInfo]()
 
     for i in list_snapshots(dataset):
-        snapshot = parse_snapshot_name(prefix, i)
+        snapshot = _info_from_snapshot(i, prefix)
 
         if snapshot is not None:
             snapshots.append(snapshot)

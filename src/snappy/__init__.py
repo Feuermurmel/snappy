@@ -10,6 +10,7 @@ from typing import TypeVar, Callable
 from snappy.config import get_default_config_path, parse_keep_spec, KeepSpec
 from snappy.snappy import auto_command, cli_command, default_snapshot_name_prefix
 from snappy.utils import BetterHelpFormatter, UserError
+from snappy.zfs import Dataset
 
 
 T = TypeVar('T')
@@ -50,6 +51,7 @@ def _parse_args() -> Namespace:
     parser.add_argument(
         'datasets',
         nargs='*',
+        type=Dataset,
         metavar='DATASETS',
         help='Datasets on which to create (and prune) snapshots.')
 
@@ -105,7 +107,7 @@ def _parse_args() -> Namespace:
 
 
 def main(
-        datasets: list[str], recursive: bool, prefix: str | None,
+        datasets: list[Dataset], recursive: bool, prefix: str | None,
         keep_specs: list[KeepSpec] | None, take_snapshot: bool, auto: bool,
         config_path: Path | None):
     if auto:

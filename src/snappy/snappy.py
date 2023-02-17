@@ -9,7 +9,7 @@ from snappy.utils import UserError
 from snappy.config import load_config, get_default_config_path, KeepSpec, MostRecentKeepSpec
 from snappy.snapshots import make_snapshot_name, get_snapshot_infos, \
     select_snapshots_to_keep
-from snappy.zfs import create_snapshots, destroy_snapshots
+from snappy.zfs import create_snapshots, destroy_snapshots, Dataset, Snapshot
 
 
 default_snapshot_name_prefix = 'snappy'
@@ -31,14 +31,15 @@ def _run_script(script: str):
             f'Pre-snapshot script failed with exit code {e.returncode}.')
 
 
-def _snapshot(datasets: list[str], recursive: bool, prefix: str):
+def _snapshot(datasets: list[Dataset], recursive: bool, prefix: str):
     snapshot_name = make_snapshot_name(prefix, _datetime_now())
+    snapshots = [Snapshot(i, snapshot_name) for i in datasets]
 
-    create_snapshots(datasets, snapshot_name, recursive)
+    create_snapshots(snapshots, recursive)
 
 
 def _prune(
-        datasets: list[str], recursive: bool, prefix: str,
+        datasets: list[Dataset], recursive: bool, prefix: str,
         keep_specs: list[KeepSpec]):
     for dataset in datasets:
         # The most recent snapshot should never be deleted by this tool.
@@ -48,11 +49,11 @@ def _prune(
         selected_snapshots = select_snapshots_to_keep(snapshots, keep_specs)
         deleted_snapshot = set(snapshots) - selected_snapshots
 
-        destroy_snapshots(dataset, [i.name for i in deleted_snapshot], recursive)
+        destroy_snapshots([i.snapshot for i in deleted_snapshot], recursive)
 
 
 def cli_command(
-        datasets: list[str], recursive: bool, prefix: str | None,
+        datasets: list[Dataset], recursive: bool, prefix: str | None,
         keep_specs: list[KeepSpec] | None, take_snapshot: bool,
         pre_snapshot_script: str | None = None):
     if prefix is None:
