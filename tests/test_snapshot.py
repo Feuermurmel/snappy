@@ -1,4 +1,4 @@
-from conftest import get_snapshots, zfs
+from conftest import get_snapshots, run_command
 
 
 def test_create_snapshot(temp_filesystem, snappy_command):
@@ -19,7 +19,7 @@ def test_multiple_keep(temp_filesystem, snappy_command):
 
 def test_recursive(temp_filesystem, snappy_command):
     child_filesystem = f'{temp_filesystem}/child'
-    zfs('create', child_filesystem)
+    run_command('zfs', 'create', child_filesystem)
 
     # Should not create recursive snapshots.
     snappy_command(f'{temp_filesystem}')

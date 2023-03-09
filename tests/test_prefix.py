@@ -1,4 +1,4 @@
-from conftest import get_snapshots, zfs
+from conftest import get_snapshots
 
 
 def test_create_snapshot(temp_filesystem, snappy_command):

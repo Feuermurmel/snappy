@@ -1,4 +1,4 @@
-from conftest import get_snapshots, zfs
+from conftest import get_snapshots, run_command
 
 
 def test_error_no_config_file_found(
@@ -63,7 +63,7 @@ def test_config_error_dacite_deserialization(
 
 def test_auto(snappy_command, mocked_config_file, temp_filesystem):
     child_filesystem = f'{temp_filesystem}/child'
-    zfs('create', child_filesystem)
+    run_command('zfs', 'create', child_filesystem)
 
     mocked_config_file.write_text(
         f'[[snapshot]]\n'
