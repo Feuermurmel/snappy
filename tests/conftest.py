@@ -45,7 +45,7 @@ def cleanup_temp_zpool():
 
 
 @pytest.fixture(scope='session')
-def temp_zpool():
+def zpool():
     cleanup_temp_zpool()
 
     run_command('truncate', '-s', '100M', temp_zpool_vdev_path)
@@ -57,8 +57,8 @@ def temp_zpool():
 
 
 @pytest.fixture
-def temp_filesystems(temp_zpool):
-    root_temp_filesystem = f'{temp_zpool}/t'
+def filesystems(zpool):
+    root_temp_filesystem = f'{zpool}/t'
 
     run_command('zfs', 'create', root_temp_filesystem)
 
@@ -76,13 +76,13 @@ def temp_filesystems(temp_zpool):
 
 
 @pytest.fixture
-def temp_filesystem(temp_filesystems):
-    return temp_filesystems('temp')
+def filesystem(filesystems):
+    return filesystems('temp')
 
 
 @pytest.fixture
-def other_temp_filesystem(temp_filesystems):
-    return temp_filesystems('other')
+def other_filesystem(filesystems):
+    return filesystems('other')
 
 
 @pytest.fixture

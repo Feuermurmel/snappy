@@ -61,13 +61,13 @@ def test_config_error_dacite_deserialization(
         snappy_command('--auto')
 
 
-def test_auto(snappy_command, mocked_config_file, temp_filesystem):
-    child_filesystem = f'{temp_filesystem}/child'
+def test_auto(snappy_command, mocked_config_file, filesystem):
+    child_filesystem = f'{filesystem}/child'
     run_command('zfs', 'create', child_filesystem)
 
     mocked_config_file.write_text(
         f'[[snapshot]]\n'
-        f'datasets = ["{temp_filesystem}"]\n'
+        f'datasets = ["{filesystem}"]\n'
         f'recursive = true\n'
         f'prune_keep = ["1h:2"]\n')
 
@@ -76,21 +76,21 @@ def test_auto(snappy_command, mocked_config_file, temp_filesystem):
     snappy_command('--auto')
 
     expected_snapshots = ['snappy-2001-02-03-091500', 'snappy-2001-02-03-101500']
-    assert get_snapshots(temp_filesystem) == expected_snapshots
+    assert get_snapshots(filesystem) == expected_snapshots
     assert get_snapshots(child_filesystem) == expected_snapshots
 
 
 def test_two_jobs(
-        snappy_command, mocked_config_file, temp_filesystem,
-        other_temp_filesystem):
+        snappy_command, mocked_config_file, filesystem,
+        other_filesystem):
     mocked_config_file.write_text(
         f'[[snapshot]]\n'
-        f'datasets = ["{temp_filesystem}"]\n'
+        f'datasets = ["{filesystem}"]\n'
         f'[[snapshot]]\n'
-        f'datasets = ["{other_temp_filesystem}"]\n'
+        f'datasets = ["{other_filesystem}"]\n'
         f'prefix = "foo"\n')
 
     snappy_command('--auto')
 
-    assert get_snapshots(temp_filesystem) == ['snappy-2001-02-03-081500']
-    assert get_snapshots(other_temp_filesystem) == ['foo-2001-02-03-091500']
+    assert get_snapshots(filesystem) == ['snappy-2001-02-03-081500']
+    assert get_snapshots(other_filesystem) == ['foo-2001-02-03-091500']
