@@ -19,6 +19,7 @@ warn_unreachable = true
 strict_concatenate = true
 strict_equality = true
 check_untyped_defs = true
+disallow_any_generics = true
 
 [tool.pytest.ini_options]
 testpaths = "tests"
