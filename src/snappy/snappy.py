@@ -7,8 +7,7 @@ from subprocess import CalledProcessError
 
 from snappy.utils import UserError
 from snappy.config import load_config, get_default_config_path, KeepSpec, MostRecentKeepSpec
-from snappy.snapshots import make_snapshot_name, get_snapshot_infos, \
-    select_snapshots_to_keep
+from snappy.snapshots import make_snapshot_name, get_snapshot_infos, find_expired_snapshots
 from snappy.zfs import create_snapshots, destroy_snapshots, Dataset, Snapshot
 
 
@@ -45,11 +44,9 @@ def _prune(
         # The most recent snapshot should never be deleted by this tool.
         keep_specs = keep_specs + [MostRecentKeepSpec(1)]
         snapshots = get_snapshot_infos(dataset, prefix)
+        expired_snapshot = find_expired_snapshots(snapshots, keep_specs)
 
-        selected_snapshots = select_snapshots_to_keep(snapshots, keep_specs)
-        deleted_snapshot = set(snapshots) - selected_snapshots
-
-        destroy_snapshots([i.snapshot for i in deleted_snapshot], recursive)
+        destroy_snapshots([i.snapshot for i in expired_snapshot], recursive)
 
 
 def cli_command(

@@ -51,7 +51,7 @@ def get_snapshot_infos(dataset: Dataset, prefix: str) -> list[SnapshotInfo]:
     return snapshots
 
 
-def select_snapshots_to_keep(
+def find_expired_snapshots(
         snapshots: list[SnapshotInfo], keep_specs: list[KeepSpec]) \
         -> set[SnapshotInfo]:
     def get_selected_snapshots(spec: KeepSpec) -> list[SnapshotInfo]:
@@ -73,6 +73,6 @@ def select_snapshots_to_keep(
 
         return list(selected_snapshots)[:spec.count]
 
-    return {
+    return set(snapshots) - {
         snapshot for keep_spec in keep_specs
         for snapshot in get_selected_snapshots(keep_spec)}

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from snappy import parse_keep_spec, Dataset
-from snappy.snapshots import SnapshotInfo, select_snapshots_to_keep
+from snappy.snapshots import SnapshotInfo, find_expired_snapshots
 from snappy.zfs import Snapshot
 
 
@@ -33,7 +33,8 @@ def check_kept_snapshots(
         datetime.fromisoformat(i)
         for i in expected_selected_snapshots}
 
-    selected_snapshots = select_snapshots_to_keep(snapshots, keep_specs)
+    selected_snapshots = \
+        set(snapshots) - find_expired_snapshots(snapshots, keep_specs)
 
     assert {i.timestamp for i in selected_snapshots} \
            == expected_selected_snapshot_timestamps
