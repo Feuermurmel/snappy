@@ -2,7 +2,8 @@ import logging
 import subprocess
 from dataclasses import dataclass
 from subprocess import check_output
-from typing import NewType, Iterable
+from typing import NewType, Iterable, TypeAlias, TypeVar, Generic, Literal, \
+    overload, Sequence
 
 
 # Sadly a misnomer as this is only used to refer to filesystems and volumes, but
@@ -21,10 +22,27 @@ class Snapshot:
 
 
 @dataclass(frozen=True)
-class SnapshotInfo:
-    snapshot: Snapshot
+class Bookmark:
+    dataset: Dataset
+    name: str
+
+    def __str__(self):
+        return f'{self.dataset}#{self.name}'
+
+
+SnapshotLike: TypeAlias = Snapshot | Bookmark
+
+SnapshotLikeT = TypeVar('SnapshotLikeT', bound=SnapshotLike, covariant=True)
+
+
+@dataclass(frozen=True)
+class SnapshotInfo(Generic[SnapshotLikeT]):
+    snapshot: SnapshotLikeT
     guid: int
     createtxg: int
+
+
+SnapshotInfoT = TypeVar('SnapshotInfoT', bound=SnapshotInfo[SnapshotLike])
 
 
 def create_snapshots(snapshots: list[Snapshot], recursive: bool):
@@ -35,24 +53,48 @@ def create_snapshots(snapshots: list[Snapshot], recursive: bool):
     subprocess.check_call(['zfs', 'snapshot', *recursive_arg, '--', *snapshot_args])
 
 
-def list_snapshots(dataset: Dataset) -> list[SnapshotInfo]:
+@overload
+def list_snapshot_like(
+        dataset: Dataset, types: Iterable[Literal['snapshot']]) \
+        -> Sequence[SnapshotInfo[Snapshot]]: ...
+@overload
+def list_snapshot_like(
+        dataset: Dataset, types: Iterable[Literal['bookmark']]) \
+        -> Sequence[SnapshotInfo[Bookmark]]: ...
+@overload
+def list_snapshot_like(
+        dataset: Dataset, types: Iterable[Literal['snapshot', 'bookmark']]) \
+        -> Sequence[SnapshotInfo[SnapshotLike]]: ...
+
+
+def list_snapshot_like(
+        dataset: Dataset, types: Iterable[Literal['snapshot', 'bookmark']]) \
+        -> Sequence[SnapshotInfo[SnapshotLike]]:
     """
     Return a list of snapshots of the specified dataset.
     """
     output = check_output(
-        ['zfs', 'list', '-Hpd1', '-t', 'snapshot', '-o', 'name,guid,createtxg',
-         '--', dataset],
+        ['zfs', 'list', '-Hpd1', '-t', ','.join(types),
+         '-o', 'name,guid,createtxg', '--', dataset],
         text=True)
 
-    def parse_line(line: str) -> SnapshotInfo:
+    def parse_line(line: str) -> SnapshotInfo[SnapshotLike]:
         full_name, guid_str, createtxg_str = line.split('\t')
-        dataset_name, name = full_name.split('@')
-        guid = int(guid_str)
-        createtxg = int(createtxg_str)
+        snapshot_like: SnapshotLike
+
+        if '@' in full_name:
+            dataset_name, name = full_name.split('@')
+            snapshot_like = Snapshot(dataset, name)
+        else:
+            dataset_name, name = full_name.split('#')
+            snapshot_like = Bookmark(dataset, name)
 
         assert dataset_name == dataset
 
-        return SnapshotInfo(Snapshot(dataset, name), guid, createtxg)
+        guid = int(guid_str)
+        createtxg = int(createtxg_str)
+
+        return SnapshotInfo(snapshot_like, guid, createtxg)
 
     return [parse_line(i) for i in output.splitlines()]
 

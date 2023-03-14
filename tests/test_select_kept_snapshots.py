@@ -20,8 +20,8 @@ snapshot_timestamps = [
     '2023-02-27 15:05']
 
 
-def snapshots_from_timestamps(timestamps: list[str]) -> list[SnapshotInfo]:
-    res: list[SnapshotInfo] = []
+def snapshots_from_timestamps(timestamps: list[str]) -> list[SnapshotInfo[Snapshot]]:
+    res: list[SnapshotInfo[Snapshot]] = []
 
     for i, t in enumerate(timestamps):
         name = f'foo-{datetime.fromisoformat(t):{_timestamp_format}}'

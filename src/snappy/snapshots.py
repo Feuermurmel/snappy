@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Sequence
 
 from snappy.config import KeepSpec, IntervalKeepSpec
 from snappy.zfs import Snapshot, SnapshotInfo
@@ -31,7 +32,7 @@ def _parse_snapshot_name(name: str, prefix: str) -> datetime | None:
 
 
 def find_expired_snapshots(
-        snapshots: list[SnapshotInfo], keep_specs: list[KeepSpec],
+        snapshots: Sequence[SnapshotInfo[Snapshot]], keep_specs: list[KeepSpec],
         prefix: str) \
         -> set[Snapshot]:
     snapshots_with_timestamps: list[tuple[Snapshot, datetime]] = []
