@@ -1,7 +1,7 @@
 import logging
 import subprocess
 from dataclasses import dataclass
-from typing import NewType
+from typing import NewType, Iterable
 
 
 # Sadly a misnomer as this is only used to refer to filesystems and volumes, but
@@ -42,7 +42,7 @@ def list_snapshots(dataset: Dataset) -> list[Snapshot]:
     return [parse_snapshot(i) for i in output.splitlines()]
 
 
-def destroy_snapshots(snapshots: list[Snapshot], recursive: bool):
+def destroy_snapshots(snapshots: Iterable[Snapshot], recursive: bool):
     if not snapshots:
         # We can't call `zfs destroy` with an empty list of snapshots.
         return
