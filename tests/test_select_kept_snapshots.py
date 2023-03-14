@@ -2,7 +2,7 @@ from datetime import datetime
 
 from snappy import parse_keep_spec, Dataset
 from snappy.snapshots import find_expired_snapshots, _timestamp_format
-from snappy.zfs import Snapshot
+from snappy.zfs import Snapshot, SnapshotInfo
 
 
 snapshot_timestamps = [
@@ -20,26 +20,31 @@ snapshot_timestamps = [
     '2023-02-27 15:05']
 
 
-def snapshots_from_timestamps(timestamps: list[str]) -> list[Snapshot]:
-    return [
-        Snapshot(
-            Dataset('dummy'),
-            f'foo-{datetime.fromisoformat(i):{_timestamp_format}}')
-        for i in timestamps]
+def snapshots_from_timestamps(timestamps: list[str]) -> list[SnapshotInfo]:
+    res: list[SnapshotInfo] = []
+
+    for i, t in enumerate(timestamps):
+        name = f'foo-{datetime.fromisoformat(t):{_timestamp_format}}'
+
+        res.append(SnapshotInfo(Snapshot(Dataset('dummy'), name), i, i))
+
+    return res
 
 
 def check_kept_snapshots(
-        keep_spec_strs: list[str], expected_selected_snapshots: list[str]):
+        keep_spec_strs: list[str], expected_selected_snapshot_names: list[str]):
     keep_specs = [parse_keep_spec(i) for i in keep_spec_strs]
 
     snapshots = snapshots_from_timestamps(snapshot_timestamps)
-    expected_selected_snapshot_timestamps = \
-        snapshots_from_timestamps(expected_selected_snapshots)
+    expected_selected_snapshots = {
+        i.snapshot
+        for i in snapshots_from_timestamps(expected_selected_snapshot_names)}
 
     selected_snapshots = \
-        set(snapshots) - find_expired_snapshots(snapshots, keep_specs, 'foo')
+        {i.snapshot for i in snapshots_from_timestamps(snapshot_timestamps)} \
+        - find_expired_snapshots(snapshots, keep_specs, 'foo')
 
-    assert list(selected_snapshots) == expected_selected_snapshot_timestamps
+    assert selected_snapshots == expected_selected_snapshots
 
 
 def test_keep_most_recent():

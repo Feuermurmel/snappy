@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from snappy.config import KeepSpec, IntervalKeepSpec
-from snappy.zfs import Snapshot
+from snappy.zfs import Snapshot, SnapshotInfo
 
 
 _timestamp_format = '%Y-%m-%d-%H%M%S'
@@ -31,17 +31,18 @@ def _parse_snapshot_name(name: str, prefix: str) -> datetime | None:
 
 
 def find_expired_snapshots(
-        snapshots: list[Snapshot], keep_specs: list[KeepSpec], prefix: str) \
+        snapshots: list[SnapshotInfo], keep_specs: list[KeepSpec],
+        prefix: str) \
         -> set[Snapshot]:
     snapshots_with_timestamps: list[tuple[Snapshot, datetime]] = []
 
-    # The list of snapshots returned by `zfs list` is from oldest to newest, but
-    # we want to keep newer rather than older snapshots.
-    for i in reversed(snapshots):
-        timestamp = _parse_snapshot_name(i.name, prefix)
+    # Sort the list from newest to oldest so that we keep newer snapshots before
+    # older ones.
+    for i in sorted(snapshots, key=lambda x: x.createtxg, reverse=True):
+        timestamp = _parse_snapshot_name(i.snapshot.name, prefix)
 
         if timestamp is not None:
-            snapshots_with_timestamps.append((i, timestamp))
+            snapshots_with_timestamps.append((i.snapshot, timestamp))
 
     def get_selected_snapshots(spec: KeepSpec) -> list[Snapshot]:
         # Select a subset of snapshots unless we're using a
@@ -60,6 +61,8 @@ def find_expired_snapshots(
 
         return selected_snapshots[:spec.count]
 
-    return set(snapshots) - {
+    all_selected_snapshots = {
         snapshot for keep_spec in keep_specs
         for snapshot in get_selected_snapshots(keep_spec)}
+
+    return {s for s, _ in snapshots_with_timestamps} - all_selected_snapshots
