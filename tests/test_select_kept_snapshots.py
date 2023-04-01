@@ -1,8 +1,8 @@
 from datetime import datetime
 
-from snappy import parse_keep_spec, Dataset
+from snappy.config import parse_keep_spec
 from snappy.snapshots import find_expired_snapshots, _timestamp_format
-from snappy.zfs import Snapshot, SnapshotInfo
+from snappy.zfs import Dataset, Snapshot, SnapshotInfo
 
 
 snapshot_timestamps = [
@@ -32,7 +32,9 @@ def snapshots_from_timestamps(timestamps: list[str]) -> list[SnapshotInfo[Snapsh
 
 
 def check_kept_snapshots(
-        keep_spec_strs: list[str], expected_selected_snapshot_names: list[str]):
+        keep_spec_strs: list[str],
+        expected_selected_snapshot_names: list[str]) \
+        -> None:
     keep_specs = [parse_keep_spec(i) for i in keep_spec_strs]
 
     snapshots = snapshots_from_timestamps(snapshot_timestamps)

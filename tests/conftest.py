@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import pytest
+from pytest import MonkeyPatch
 
 import snappy.config
 from snappy import entry_point
@@ -62,7 +63,7 @@ def filesystems(zpool):
 
     run_command('zfs', 'create', root_temp_filesystem)
 
-    def temp_filesystems_fixture(basename: str, create: bool = True):
+    def temp_filesystems_fixture(basename: str, create: bool = True) -> str:
         name = f'{root_temp_filesystem}/{basename}'
 
         if create:
@@ -87,7 +88,7 @@ def other_filesystem(filesystems):
 
 @pytest.fixture
 def snappy_command(monkeypatch):
-    def snappy_command_fixture(args: str):
+    def snappy_command_fixture(args: str) -> None:
         monkeypatch.setattr('sys.argv', shlex.split(f'snappy {args}'))
         entry_point()
 
@@ -97,7 +98,7 @@ def snappy_command(monkeypatch):
 @pytest.fixture
 def fails_with_message(capsys):
     @contextmanager
-    def fails_with_message_context(message_pattern: str):
+    def fails_with_message_context(message_pattern):
         with pytest.raises(SystemExit):
             yield
 
@@ -125,7 +126,7 @@ def mocked_datetime_now(monkeypatch):
 
 
 @pytest.fixture
-def mocked_config_file(monkeypatch, tmp_path):
+def mocked_config_file(monkeypatch: MonkeyPatch, tmp_path: Path) -> Path:
     config_path = tmp_path / 'mocked_config_file.toml'
 
     def mock_load_config(path: Path) -> Config:
