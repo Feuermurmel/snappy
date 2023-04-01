@@ -84,7 +84,7 @@ def _parse_args() -> Namespace:
 
     args = parser.parse_args()
 
-    def check(condition, message):
+    def check(condition: object, message: str) -> None:
         if not condition:
             parser.error(message)
 
@@ -109,14 +109,14 @@ def _parse_args() -> Namespace:
 def main(
         datasets: list[Dataset], recursive: bool, prefix: str | None,
         keep_specs: list[KeepSpec] | None, take_snapshot: bool, auto: bool,
-        config_path: Path | None):
+        config_path: Path | None) -> None:
     if auto:
         auto_command(config_path)
     else:
         cli_command(datasets, recursive, prefix, keep_specs, take_snapshot)
 
 
-def entry_point():
+def entry_point() -> None:
     logging.basicConfig(level=logging.INFO, format='%(message)s')
 
     try:

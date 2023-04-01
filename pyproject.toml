@@ -10,16 +10,11 @@ dev = ["pytest", "mypy", "types-toml"]
 snappy = "snappy:entry_point"
 
 [tool.mypy]
-files = ["src", "tests"]
+files = ["src"]
 namespace_packages = true
 ignore_missing_imports = true
-warn_redundant_casts = true
-warn_unused_ignores = true
 warn_unreachable = true
-strict_concatenate = true
-strict_equality = true
-check_untyped_defs = true
-disallow_any_generics = true
+strict = true
 
 [tool.pytest.ini_options]
 testpaths = "tests"

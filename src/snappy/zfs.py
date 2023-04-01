@@ -17,7 +17,7 @@ class Snapshot:
     dataset: Dataset
     name: str
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.dataset}@{self.name}'
 
 
@@ -26,7 +26,7 @@ class Bookmark:
     dataset: Dataset
     name: str
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f'{self.dataset}#{self.name}'
 
 
@@ -45,7 +45,7 @@ class SnapshotInfo(Generic[SnapshotLikeT]):
 SnapshotInfoT = TypeVar('SnapshotInfoT', bound=SnapshotInfo[SnapshotLike])
 
 
-def create_snapshots(snapshots: list[Snapshot], recursive: bool):
+def create_snapshots(snapshots: list[Snapshot], recursive: bool) -> None:
     recursive_arg = ['-r'] if recursive else []
     snapshot_args = [str(i) for i in snapshots]
 
@@ -99,7 +99,7 @@ def list_snapshot_like(
     return [parse_line(i) for i in output.splitlines()]
 
 
-def destroy_snapshots(snapshots: Iterable[Snapshot], recursive: bool):
+def destroy_snapshots(snapshots: Iterable[Snapshot], recursive: bool) -> None:
     if not snapshots:
         # We can't call `zfs destroy` with an empty list of snapshots.
         return

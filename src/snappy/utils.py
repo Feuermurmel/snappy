@@ -6,7 +6,7 @@ class UserError(Exception):
     pass
 
 
-def _wrap_paragraphs(text: str, width: int, indent: str):
+def _wrap_paragraphs(text: str, width: int, indent: str) -> list[str]:
     """
     Wrapper around `textwrap.wrap()` which keeps newlines in the input string
     intact.
@@ -28,8 +28,8 @@ def _wrap_paragraphs(text: str, width: int, indent: str):
 
 
 class BetterHelpFormatter(HelpFormatter):
-    def _split_lines(self, text, width):
+    def _split_lines(self, text: str, width: int) -> list[str]:
         return _wrap_paragraphs(text, width, '')
 
-    def _fill_text(self, text, width, indent):
+    def _fill_text(self, text: str, width: int, indent: str) -> str:
         return '\n'.join(_wrap_paragraphs(text, width, indent))

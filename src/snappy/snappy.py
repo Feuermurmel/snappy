@@ -14,7 +14,7 @@ from snappy.zfs import create_snapshots, destroy_snapshots, Dataset, Snapshot, l
 default_snapshot_name_prefix = 'snappy'
 
 
-def _datetime_now():
+def _datetime_now() -> datetime:
     """
     Simple wrapper for `datetime.now()`. Allows the current time to be mocked
     from tests.
@@ -22,7 +22,7 @@ def _datetime_now():
     return datetime.now()
 
 
-def _run_script(script: str):
+def _run_script(script: str) -> None:
     try:
         subprocess.check_call(script, shell=True)
     except CalledProcessError as e:
@@ -30,7 +30,7 @@ def _run_script(script: str):
             f'Pre-snapshot script failed with exit code {e.returncode}.')
 
 
-def _snapshot(datasets: list[Dataset], recursive: bool, prefix: str):
+def _snapshot(datasets: list[Dataset], recursive: bool, prefix: str) -> None:
     snapshot_name = make_snapshot_name(prefix, _datetime_now())
     snapshots = [Snapshot(i, snapshot_name) for i in datasets]
 
@@ -39,7 +39,7 @@ def _snapshot(datasets: list[Dataset], recursive: bool, prefix: str):
 
 def _prune(
         datasets: list[Dataset], recursive: bool, prefix: str,
-        keep_specs: list[KeepSpec]):
+        keep_specs: list[KeepSpec]) -> None:
     for dataset in datasets:
         # The most recent snapshot should never be deleted by this tool.
         keep_specs = keep_specs + [MostRecentKeepSpec(1)]
@@ -52,7 +52,7 @@ def _prune(
 def cli_command(
         datasets: list[Dataset], recursive: bool, prefix: str | None,
         keep_specs: list[KeepSpec] | None, take_snapshot: bool,
-        pre_snapshot_script: str | None = None):
+        pre_snapshot_script: str | None = None) -> None:
     if prefix is None:
         prefix = default_snapshot_name_prefix
 
@@ -66,7 +66,7 @@ def cli_command(
         _prune(datasets, recursive, prefix, keep_specs)
 
 
-def auto_command(config_path: Path | None):
+def auto_command(config_path: Path | None) -> None:
     if config_path is None:
         config_path = get_default_config_path()
 

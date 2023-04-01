@@ -52,7 +52,7 @@ class ValidationError(ArgumentTypeError, dacite.DaciteFieldError):
 
         self.message = message
 
-    def __str__(self):
+    def __str__(self) -> str:
         if self.field_path is None:
             return self.message
 
@@ -119,8 +119,8 @@ def get_default_config_path() -> Path:
     return Path('/etc/snappy/snappy.toml')
 
 
-def _validate_config(config: Config, config_path: Path):
-    def check(condition, message):
+def _validate_config(config: Config, config_path: Path) -> None:
+    def check(condition: object, message: str) -> None:
         if not condition:
             raise UserError(f'Error in config file `{config_path}\': {message}')
 
