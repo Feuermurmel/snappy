@@ -11,7 +11,7 @@ import dacite
 import toml
 from typing_extensions import TypeAlias
 
-from snappy.utils import UserError
+from snappy.utils import UserError, mockable_fn
 from snappy.zfs import Dataset
 
 
@@ -140,14 +140,10 @@ def _validate_config(config: Config, config_path: Path) -> None:
 _dacite_config = dacite.Config(type_hooks=_dacite_type_hooks)  # type: ignore
 
 
-# Can be mocked from tests.
-def _load_config(path: Path) -> Config:
-    return dacite.from_dict(Config, toml.load(path), _dacite_config)
-
-
+@mockable_fn
 def load_config(path: Path) -> Config:
     try:
-        config = _load_config(path)
+        config = dacite.from_dict(Config, toml.load(path), _dacite_config)
     except (FileNotFoundError, toml.TomlDecodeError, dacite.DaciteError) as e:
         raise UserError(f'Error loading config file `{path}\': {e}')
 

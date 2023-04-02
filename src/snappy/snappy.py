@@ -14,14 +14,6 @@ from snappy.zfs import create_snapshots, destroy_snapshots, Dataset, Snapshot, l
 default_snapshot_name_prefix = 'snappy'
 
 
-def _datetime_now() -> datetime:
-    """
-    Simple wrapper for `datetime.now()`. Allows the current time to be mocked
-    from tests.
-    """
-    return datetime.now()
-
-
 def _run_script(script: str) -> None:
     try:
         subprocess.check_call(script, shell=True)
@@ -31,7 +23,7 @@ def _run_script(script: str) -> None:
 
 
 def _snapshot(datasets: list[Dataset], recursive: bool, prefix: str) -> None:
-    snapshot_name = make_snapshot_name(prefix, _datetime_now())
+    snapshot_name = make_snapshot_name(prefix, datetime.now())
     snapshots = [Snapshot(i, snapshot_name) for i in datasets]
 
     create_snapshots(snapshots, recursive)

@@ -4,8 +4,7 @@ from conftest import get_snapshots, run_command
 def test_error_no_config_file_found(
         snappy_command, fails_with_message, mocked_config_file):
     with fails_with_message(
-            'Error loading config file `/etc/snappy/snappy.toml\': .* No such '
-            'file'):
+            'Error loading config file `.*\': .* No such file'):
         snappy_command('--auto')
 
 
@@ -14,8 +13,7 @@ def test_error_config_file_invalid_syntax(
     mocked_config_file.write_text('bla bla')
 
     with fails_with_message(
-            'Error loading config file `/etc/snappy/snappy.toml\': Found '
-            'invalid character'):
+            'Error loading config file `.*\': Found invalid character'):
         snappy_command('--auto')
 
 

@@ -1,22 +1,32 @@
 from __future__ import annotations
 
+import datetime
 import re
 import shlex
 import subprocess
 from contextlib import contextmanager
-from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Callable
 
 import pytest
+import toml
 from pytest import MonkeyPatch
 
-import snappy.config
-from snappy.cli import entry_point
-from snappy.config import Config
+from snappy.utils import mockable_fn
 
 
 temp_zpool_vdev_path = Path('/dev/shm/snappy-test-vdev')
 temp_zpool_name = 'snappy-test-zpool'
+
+
+def pytest_sessionstart(session):
+    class MockableDatetime(datetime.datetime):
+        now = mockable_fn(datetime.datetime.now)
+
+    # Allow mocking of the current time.
+    datetime.datetime = MockableDatetime
+
+    toml.load = mockable_fn(toml.load)
 
 
 def run_command(*cmdline: str | Path) -> list[str]:
@@ -88,6 +98,8 @@ def other_filesystem(filesystems):
 
 @pytest.fixture
 def snappy_command(monkeypatch):
+    from snappy.cli import entry_point
+
     def snappy_command_fixture(args: str) -> None:
         monkeypatch.setattr('sys.argv', shlex.split(f'snappy {args}'))
         entry_point()
@@ -110,29 +122,37 @@ def fails_with_message(capsys):
 @pytest.fixture(autouse=True)
 def mocked_datetime_now(monkeypatch):
     """
-    Mock datetime_now() used to generate snapshot names so that we can have
-    consistent snapshot names during tests.
+    Mock datetime.datetime.now() used to generate snapshot names so that we can
+    have consistent snapshot names during tests.
     """
-    now = datetime(2001, 2, 3, 7, 15, 0)
+    print(datetime.datetime)
+    print(datetime.datetime.now)
 
-    def mock_datetime_now():
+    now = datetime.datetime(2001, 2, 3, 7, 15, 0)
+
+    def mock_datetime_now(tz=None):
         nonlocal now
 
-        now += timedelta(hours=1)
+        now += datetime.timedelta(hours=1)
 
         return now
 
-    monkeypatch.setattr('snappy.snappy._datetime_now', mock_datetime_now)
+    monkeypatch.setattr(datetime.datetime.now, '__wrapped__', mock_datetime_now)
 
 
 @pytest.fixture
 def mocked_config_file(monkeypatch: MonkeyPatch, tmp_path: Path) -> Path:
+    import snappy
+    from snappy.config import Config
+
     config_path = tmp_path / 'mocked_config_file.toml'
 
     def mock_load_config(path: Path) -> Config:
         return orig_load_config(config_path)
 
-    orig_load_config = snappy.config._load_config
-    monkeypatch.setattr('snappy.config._load_config', mock_load_config)
+    orig_load_config: Callable[[Path], Config] = \
+        snappy.config.load_config.__wrapped__  # type: ignore
+
+    monkeypatch.setattr(snappy.config.load_config, '__wrapped__', mock_load_config)
 
     return config_path
