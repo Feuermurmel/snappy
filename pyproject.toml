@@ -10,8 +10,8 @@ dev = ["pytest", "mypy", "types-toml"]
 snappy = "snappy.cli:entry_point"
 
 [tool.mypy]
+mypy_path = "$MYPY_CONFIG_FILE_DIR/src:$MYPY_CONFIG_FILE_DIR/tests"
 files = ["src", "tests"]
-namespace_packages = true
 ignore_missing_imports = true
 warn_unreachable = true
 warn_unused_configs = true
