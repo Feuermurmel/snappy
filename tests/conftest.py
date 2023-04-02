@@ -11,7 +11,7 @@ import pytest
 from pytest import MonkeyPatch
 
 import snappy.config
-from snappy import entry_point
+from snappy.cli import entry_point
 from snappy.config import Config
 
 

@@ -7,7 +7,7 @@ dependencies = ["toml", "dacite", "typing_extensions"]
 dev = ["pytest", "mypy", "types-toml"]
 
 [project.scripts]
-snappy = "snappy:entry_point"
+snappy = "snappy.cli:entry_point"
 
 [tool.mypy]
 files = ["src", "tests"]
