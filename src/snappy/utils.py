@@ -1,8 +1,10 @@
+import shlex
 import sys
 import textwrap
 from argparse import HelpFormatter
 from functools import wraps
-from typing import ParamSpec, TypeVar, Callable
+from subprocess import check_call
+from typing import ParamSpec, TypeVar, Callable, Any
 
 
 T = TypeVar('T')
@@ -58,3 +60,12 @@ def mockable_fn(fn: Callable[P, T]) -> Callable[P, T]:
         return wrapped_fn.__wrapped__(*args, **kwargs)  # type: ignore
 
     return wrapped_fn
+
+
+def check_call_pipeline(*cmdlines: list[str], **kwargs: Any) -> None:
+    """
+    subprocess.check_call() for pipelines. Each element of cmdlines is a list
+    representing a command line of separate processes to be started. All started
+    processes are joined in a pipeline.
+    """
+    check_call(' | '.join(shlex.join(i) for i in cmdlines), shell=True, **kwargs)

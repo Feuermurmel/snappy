@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 import logging
 from dataclasses import dataclass
 from subprocess import check_call, check_output
 from typing import NewType, Iterable, TypeAlias, TypeVar, Generic, Sequence
+
+from snappy.utils import check_call_pipeline
 
 
 # Sadly a misnomer as this is only used to refer to filesystems and volumes, but
@@ -49,6 +53,20 @@ def create_snapshots(snapshots: list[Snapshot], recursive: bool) -> None:
 
     logging.info(f'Creating snapshots: {", ".join(snapshot_args)}')
     check_call(['zfs', 'snapshot', *recursive_arg, '--', *snapshot_args])
+
+
+def create_bookmark(snapshot: Snapshot, bookmark: Bookmark) -> None:
+    logging.info(f'Creating bookmark: {bookmark}')
+    check_call(['zfs', 'bookmark', f'{snapshot}', f'{bookmark}'])
+
+
+def list_children(dataset: Dataset) -> list[Dataset]:
+    output = check_output(
+        ['zfs', 'list', '-H', '-r', '-t', 'filesystem,volume', '-o', 'name',
+         '--', dataset],
+        text=True)
+
+    return [Dataset(i) for i in output.splitlines()]
 
 
 def _list_snapshots_and_bookmarks(
@@ -107,3 +125,26 @@ def destroy_snapshots(snapshots: Iterable[Snapshot], recursive: bool) -> None:
 
     logging.info(f'Destroying snapshots: {snapshots_arg}')
     check_call(['zfs', 'destroy', *recursive_arg, '--', snapshots_arg])
+
+
+def destroy_bookmark(bookmark: Bookmark) -> None:
+    logging.info(f'Destroying bookmark: {bookmark}')
+    check_call(['zfs', 'destroy', '--', f'{bookmark}'])
+
+
+def send_receive_snapshot(
+        incremental_base_snapshot: Bookmark | Snapshot | None, source: Snapshot,
+        target: Snapshot) -> None:
+    if incremental_base_snapshot is None:
+        incremental_args = []
+    else:
+        incremental_args = ['-i', f'{incremental_base_snapshot}']
+
+    # Using -F on the receive side to prevent receiving to fail if the target
+    # filesystem has been modified since the last receive. This will only make a
+    # difference for incremental sends, i.e. when we know that the target
+    # filesystem has actually been created as a back of the source we're
+    # sending. If the target filesystem is unrelated, it won't be overwritten.
+    check_call_pipeline(
+        ['zfs', 'send', '-wp', *incremental_args, f'{source}'],
+        ['zfs', 'receive', '-F', f'{target}'])
