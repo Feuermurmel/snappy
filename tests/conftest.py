@@ -6,10 +6,11 @@ import shlex
 import subprocess
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterator, ContextManager
 
 import pytest
 import toml
+from _pytest.capture import CaptureFixture
 from pytest import MonkeyPatch
 
 from snappy.utils import mockable_fn
@@ -108,13 +109,24 @@ def snappy_command(monkeypatch):
 
 
 @pytest.fixture
-def fails_with_message(capsys):
+def expect_message(
+        capsys: CaptureFixture[str]) \
+        -> Callable[[str], ContextManager[None]]:
     @contextmanager
-    def fails_with_message_context(message_pattern):
-        with pytest.raises(SystemExit):
-            yield
+    def expect_message_context(message_pattern: str) -> Iterator[None]:
+        yield
 
         assert re.search(message_pattern, capsys.readouterr().err)
+
+    return expect_message_context
+
+
+@pytest.fixture
+def fails_with_message(expect_message):
+    @contextmanager
+    def fails_with_message_context(message_pattern):
+        with pytest.raises(SystemExit), expect_message(message_pattern):
+            yield
 
     return fails_with_message_context
 
