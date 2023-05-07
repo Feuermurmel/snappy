@@ -32,7 +32,7 @@ def _parse_snapshot_name(name: str, prefix: str) -> datetime | None:
 
 
 def find_expired_snapshots(
-        snapshots: Sequence[SnapshotInfo[Snapshot]], keep_specs: list[KeepSpec],
+        snapshots: Sequence[SnapshotInfo], keep_specs: list[KeepSpec],
         prefix: str) \
         -> set[Snapshot]:
     snapshots_with_timestamps: list[tuple[Snapshot, datetime]] = []
@@ -40,10 +40,10 @@ def find_expired_snapshots(
     # Sort the list from newest to oldest so that we keep newer snapshots before
     # older ones.
     for i in sorted(snapshots, key=lambda x: x.createtxg, reverse=True):
-        timestamp = _parse_snapshot_name(i.snapshot.name, prefix)
+        timestamp = _parse_snapshot_name(i.ref.name, prefix)
 
         if timestamp is not None:
-            snapshots_with_timestamps.append((i.snapshot, timestamp))
+            snapshots_with_timestamps.append((i.ref, timestamp))
 
     def get_selected_snapshots(spec: KeepSpec) -> list[Snapshot]:
         # Select a subset of snapshots unless we're using a

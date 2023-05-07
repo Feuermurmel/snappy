@@ -1,9 +1,7 @@
 import logging
-import subprocess
 from dataclasses import dataclass
-from subprocess import check_output
-from typing import NewType, Iterable, TypeAlias, TypeVar, Generic, Literal, \
-    overload, Sequence
+from subprocess import check_call, check_output
+from typing import NewType, Iterable, TypeAlias, TypeVar, Generic, Sequence
 
 
 # Sadly a misnomer as this is only used to refer to filesystems and volumes, but
@@ -30,19 +28,19 @@ class Bookmark:
         return f'{self.dataset}#{self.name}'
 
 
-SnapshotLike: TypeAlias = Snapshot | Bookmark
-
-SnapshotLikeT = TypeVar('SnapshotLikeT', bound=SnapshotLike, covariant=True)
+SnapshotOrBookmarkT = \
+    TypeVar('SnapshotOrBookmarkT', Snapshot, Bookmark, covariant=True)
 
 
 @dataclass(frozen=True)
-class SnapshotInfo(Generic[SnapshotLikeT]):
-    snapshot: SnapshotLikeT
+class _Info(Generic[SnapshotOrBookmarkT]):
+    ref: SnapshotOrBookmarkT
     guid: int
     createtxg: int
 
 
-SnapshotInfoT = TypeVar('SnapshotInfoT', bound=SnapshotInfo[SnapshotLike])
+SnapshotInfo: TypeAlias = _Info[Snapshot]
+BookmarkInfo: TypeAlias = _Info[Bookmark]
 
 
 def create_snapshots(snapshots: list[Snapshot], recursive: bool) -> None:
@@ -50,53 +48,52 @@ def create_snapshots(snapshots: list[Snapshot], recursive: bool) -> None:
     snapshot_args = [str(i) for i in snapshots]
 
     logging.info(f'Creating snapshots: {", ".join(snapshot_args)}')
-    subprocess.check_call(['zfs', 'snapshot', *recursive_arg, '--', *snapshot_args])
+    check_call(['zfs', 'snapshot', *recursive_arg, '--', *snapshot_args])
 
 
-@overload
-def list_snapshot_like(
-        dataset: Dataset, types: Iterable[Literal['snapshot']]) \
-        -> Sequence[SnapshotInfo[Snapshot]]: ...
-@overload
-def list_snapshot_like(
-        dataset: Dataset, types: Iterable[Literal['bookmark']]) \
-        -> Sequence[SnapshotInfo[Bookmark]]: ...
-@overload
-def list_snapshot_like(
-        dataset: Dataset, types: Iterable[Literal['snapshot', 'bookmark']]) \
-        -> Sequence[SnapshotInfo[SnapshotLike]]: ...
-
-
-def list_snapshot_like(
-        dataset: Dataset, types: Iterable[Literal['snapshot', 'bookmark']]) \
-        -> Sequence[SnapshotInfo[SnapshotLike]]:
+def _list_snapshots_and_bookmarks(
+        dataset: Dataset, types: str) \
+        -> tuple[Sequence[SnapshotInfo], Sequence[BookmarkInfo]]:
     """
-    Return a list of snapshots of the specified dataset.
+    Return a list of snapshots of the specified dataset, ordered by createtxg.
     """
     output = check_output(
-        ['zfs', 'list', '-Hpd1', '-t', ','.join(types),
-         '-o', 'name,guid,createtxg', '--', dataset],
+        ['zfs', 'list', '-Hpd1', '-t', types, '-o', 'name,guid,createtxg',
+         '-s', 'createtxg', '--', dataset],
         text=True)
 
-    def parse_line(line: str) -> SnapshotInfo[SnapshotLike]:
+    snapshots: list[SnapshotInfo] = []
+    bookmarks: list[BookmarkInfo] = []
+
+    for line in output.splitlines():
         full_name, guid_str, createtxg_str = line.split('\t')
-        snapshot_like: SnapshotLike
-
-        if '@' in full_name:
-            dataset_name, name = full_name.split('@')
-            snapshot_like = Snapshot(dataset, name)
-        else:
-            dataset_name, name = full_name.split('#')
-            snapshot_like = Bookmark(dataset, name)
-
-        assert dataset_name == dataset
-
         guid = int(guid_str)
         createtxg = int(createtxg_str)
 
-        return SnapshotInfo(snapshot_like, guid, createtxg)
+        if '@' in full_name:
+            dataset_name, name = full_name.split('@')
 
-    return [parse_line(i) for i in output.splitlines()]
+            snapshots.append(_Info(Snapshot(dataset, name), guid, createtxg))
+        else:
+            dataset_name, name = full_name.split('#')
+
+            bookmarks.append(_Info(Bookmark(dataset, name), guid, createtxg))
+
+    return snapshots, bookmarks
+
+
+def list_snapshots_and_bookmarks(
+        dataset: Dataset) \
+        -> tuple[Sequence[SnapshotInfo], Sequence[BookmarkInfo]]:
+    return _list_snapshots_and_bookmarks(dataset, 'snapshot,bookmark')
+
+
+def list_snapshots(dataset: Dataset) -> Sequence[SnapshotInfo]:
+    return _list_snapshots_and_bookmarks(dataset, 'snapshot')[0]
+
+
+def list_bookmarks(dataset: Dataset) -> Sequence[BookmarkInfo]:
+    return _list_snapshots_and_bookmarks(dataset, 'bookmark')[1]
 
 
 def destroy_snapshots(snapshots: Iterable[Snapshot], recursive: bool) -> None:
@@ -109,4 +106,4 @@ def destroy_snapshots(snapshots: Iterable[Snapshot], recursive: bool) -> None:
     snapshots_arg = f'{dataset}@{",".join(i.name for i in snapshots)}'
 
     logging.info(f'Destroying snapshots: {snapshots_arg}')
-    subprocess.check_call(['zfs', 'destroy', *recursive_arg, '--', snapshots_arg])
+    check_call(['zfs', 'destroy', *recursive_arg, '--', snapshots_arg])

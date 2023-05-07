@@ -6,9 +6,11 @@ from pathlib import Path
 from subprocess import CalledProcessError
 
 from snappy.utils import UserError
-from snappy.config import load_config, get_default_config_path, KeepSpec, MostRecentKeepSpec
+from snappy.config import load_config, get_default_config_path, KeepSpec, \
+    MostRecentKeepSpec
 from snappy.snapshots import make_snapshot_name, find_expired_snapshots
-from snappy.zfs import create_snapshots, destroy_snapshots, Dataset, Snapshot, list_snapshot_like
+from snappy.zfs import create_snapshots, destroy_snapshots, Dataset, Snapshot, \
+    list_snapshots
 
 
 default_snapshot_name_prefix = 'snappy'
@@ -35,7 +37,7 @@ def _prune(
     for dataset in datasets:
         # The most recent snapshot should never be deleted by this tool.
         keep_specs = keep_specs + [MostRecentKeepSpec(1)]
-        snapshots = list_snapshot_like(dataset, ['snapshot'])
+        snapshots = list_snapshots(dataset)
         expired_snapshot = find_expired_snapshots(snapshots, keep_specs, prefix)
 
         destroy_snapshots(expired_snapshot, recursive)

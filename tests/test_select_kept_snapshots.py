@@ -20,8 +20,8 @@ snapshot_timestamps = [
     '2023-02-27 15:05']
 
 
-def snapshots_from_timestamps(timestamps: list[str]) -> list[SnapshotInfo[Snapshot]]:
-    res: list[SnapshotInfo[Snapshot]] = []
+def snapshots_from_timestamps(timestamps: list[str]) -> list[SnapshotInfo]:
+    res: list[SnapshotInfo] = []
 
     for i, t in enumerate(timestamps):
         name = f'foo-{datetime.fromisoformat(t):{_timestamp_format}}'
@@ -38,12 +38,11 @@ def check_kept_snapshots(
     keep_specs = [parse_keep_spec(i) for i in keep_spec_strs]
 
     snapshots = snapshots_from_timestamps(snapshot_timestamps)
-    expected_selected_snapshots = {
-        i.snapshot
-        for i in snapshots_from_timestamps(expected_selected_snapshot_names)}
+    expected_selected_snapshots = \
+        {i.ref for i in snapshots_from_timestamps(expected_selected_snapshot_names)}
 
     selected_snapshots = \
-        {i.snapshot for i in snapshots_from_timestamps(snapshot_timestamps)} \
+        {i.ref for i in snapshots_from_timestamps(snapshot_timestamps)} \
         - find_expired_snapshots(snapshots, keep_specs, 'foo')
 
     assert selected_snapshots == expected_selected_snapshots
