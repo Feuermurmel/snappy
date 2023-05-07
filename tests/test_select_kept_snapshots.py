@@ -1,7 +1,8 @@
 from datetime import datetime
 
 from snappy.config import parse_keep_spec
-from snappy.snapshots import find_expired_snapshots, _timestamp_format
+from snappy.snapshots import find_expired_snapshots
+from snappy.utils import timestamp_format
 from snappy.zfs import Dataset, Snapshot, SnapshotInfo
 
 
@@ -24,7 +25,7 @@ def snapshots_from_timestamps(timestamps: list[str]) -> list[SnapshotInfo]:
     res: list[SnapshotInfo] = []
 
     for i, t in enumerate(timestamps):
-        name = f'foo-{datetime.fromisoformat(t):{_timestamp_format}}'
+        name = f'foo-{datetime.fromisoformat(t):{timestamp_format}}'
 
         res.append(SnapshotInfo(Snapshot(Dataset('dummy'), name), i, i))
 

@@ -4,20 +4,19 @@ from datetime import datetime
 from typing import Sequence
 
 from snappy.config import KeepSpec, IntervalKeepSpec
+from snappy.utils import timestamp_format
 from snappy.zfs import Snapshot, SnapshotInfo
 
-
-_timestamp_format = '%Y-%m-%d-%H%M%S'
 
 # Using this day, because that year incidentally starts with a monday.
 _keep_interval_time_base = datetime(2001, 1, 1)
 
 
 def make_snapshot_name(prefix: str, timestamp: datetime) -> str:
-    return f'{prefix}-{timestamp.strftime(_timestamp_format)}'
+    return f'{prefix}-{timestamp:{timestamp_format}}'
 
 
-def _parse_snapshot_name(name: str, prefix: str) -> datetime | None:
+def parse_snapshot_name(name: str, prefix: str) -> datetime | None:
     full_prefix = f'{prefix}-'
 
     if not name.startswith(full_prefix):
@@ -26,7 +25,7 @@ def _parse_snapshot_name(name: str, prefix: str) -> datetime | None:
     timestamp_str = name.removeprefix(full_prefix)
 
     try:
-        return datetime.strptime(timestamp_str, _timestamp_format)
+        return datetime.strptime(timestamp_str, timestamp_format)
     except ValueError:
         return None
 
@@ -40,7 +39,7 @@ def find_expired_snapshots(
     # Sort the list from newest to oldest so that we keep newer snapshots before
     # older ones.
     for i in sorted(snapshots, key=lambda x: x.createtxg, reverse=True):
-        timestamp = _parse_snapshot_name(i.ref.name, prefix)
+        timestamp = parse_snapshot_name(i.ref.name, prefix)
 
         if timestamp is not None:
             snapshots_with_timestamps.append((i.ref, timestamp))

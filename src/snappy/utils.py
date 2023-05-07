@@ -9,6 +9,9 @@ T = TypeVar('T')
 P = ParamSpec('P')
 
 
+timestamp_format = '%Y-%m-%d-%H%M%S'
+
+
 class UserError(Exception):
     pass
 
