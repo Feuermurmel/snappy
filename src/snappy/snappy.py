@@ -6,18 +6,44 @@ from pathlib import Path
 from subprocess import CalledProcessError
 from typing import Iterator
 
-from snappy.utils import UserError
 from snappy.config import load_config, get_default_config_path, KeepSpec, \
     MostRecentKeepSpec
+from snappy.send import send_snapshots
 from snappy.snapshots import make_snapshot_name, find_expired_snapshots
+from snappy.utils import UserError
 from snappy.zfs import create_snapshots, destroy_snapshots, Dataset, Snapshot, \
     list_snapshots, list_children
 
 default_snapshot_name_prefix = 'snappy'
 
 
+def _get_send_target(
+        source: Dataset, send_target: Dataset, send_base: str | None) \
+        -> Dataset:
+    if send_base is None:
+        return send_target
+
+    # TODO: Is it a good idea that we allow send_base to end in a `/`?
+    if not source.startswith(send_base):
+        raise UserError(f'Name of source dataset `{source}\' is not located '
+                        f'under the send base `{send_base}\'.')
+
+    return Dataset(send_target + source.removeprefix(send_base))
+
+
+def _iter_child_datasets(
+        datasets: list[Dataset], recursive: bool) \
+        -> Iterator[Dataset]:
+    for i in datasets:
+        if recursive:
+            yield from list_children(i)
+        else:
+            yield i
+
+
 def _run_script(script: str) -> None:
     try:
+        # TODO: Maybe start a new session here and wait for it.
         subprocess.check_call(script, shell=True)
     except CalledProcessError as e:
         raise UserError(
@@ -31,20 +57,24 @@ def _snapshot(datasets: list[Dataset], recursive: bool, prefix: str) -> None:
     create_snapshots(snapshots, recursive)
 
 
+def _send(
+        datasets: list[Dataset], recursive: bool, prefix: str,
+        send_target: Dataset, send_base: str) \
+        -> None:
+    for dataset in _iter_child_datasets(datasets, recursive):
+        target_dataset = _get_send_target(dataset, send_target, send_base)
+
+        send_snapshots(dataset, target_dataset, prefix)
+
+
 def _prune(
         datasets: list[Dataset], recursive: bool, prefix: str,
-        keep_specs: list[KeepSpec]) -> None:
+        keep_specs: list[KeepSpec]) \
+        -> None:
     # The most recent snapshot should never be deleted by this tool.
     keep_specs = keep_specs + [MostRecentKeepSpec(1)]
 
-    def iter_child_datasets() -> Iterator[Dataset]:
-        for dataset in datasets:
-            if recursive:
-                yield from list_children(dataset)
-            else:
-                yield dataset
-
-    for dataset in iter_child_datasets():
+    for dataset in _iter_child_datasets(datasets, recursive):
         snapshots = list_snapshots(dataset)
         expired_snapshot = find_expired_snapshots(snapshots, keep_specs, prefix)
 
@@ -53,8 +83,10 @@ def _prune(
 
 def cli_command(
         datasets: list[Dataset], recursive: bool, prefix: str | None,
-        keep_specs: list[KeepSpec] | None, take_snapshot: bool,
-        pre_snapshot_script: str | None = None) -> None:
+        take_snapshot: bool, pre_snapshot_script: str | None,
+        keep_specs: list[KeepSpec] | None, send_target: Dataset | None,
+        send_base: Dataset | None) \
+        -> None:
     if prefix is None:
         prefix = default_snapshot_name_prefix
 
@@ -63,6 +95,18 @@ def cli_command(
 
     if take_snapshot:
         _snapshot(datasets, recursive, prefix)
+
+    if send_target is not None:
+        if send_base is None:
+            # Effectively, when no send_base is specified, the full path of the
+            # single source is used as the base.
+            send_base, = datasets
+
+        _send(datasets, recursive, prefix, send_target, send_base)
+
+        # We want to prune snapshots on the target datasets when sending
+        # snapshots.
+        datasets = [_get_send_target(i, send_target, send_base) for i in datasets]
 
     if keep_specs is not None:
         _prune(datasets, recursive, prefix, keep_specs)
@@ -76,5 +120,5 @@ def auto_command(config_path: Path | None) -> None:
 
     for i in config.snapshot:
         cli_command(
-            i.datasets, i.recursive, i.prefix, i.prune_keep, i.take_snapshot,
-            i.pre_snapshot_script)
+            i.datasets, i.recursive, i.prefix, i.take_snapshot,
+            i.pre_snapshot_script, i.prune_keep, i.send_target, i.send_base)

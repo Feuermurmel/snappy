@@ -1,14 +1,15 @@
 # snappy - Create and prune ZFS snapshots
 
 ```
-usage: snappy [-h] [-r] [-p PREFIX] [-S] [-k KEEP_SPECIFICATION] [--auto]
-              [--config CONFIG_PATH]
+$ snappy --help
+usage: snappy [-h] [-r] [-p PREFIX] [-S] [-k KEEP_SPECIFICATIONS] [-s TARGET]
+              [-b SEND_BASE] [--auto] [--config CONFIG_PATH]
               [DATASETS ...]
 
 Create and/or prune snapshots on ZFS filesystems.
 
 positional arguments:
-  DATASETS              Datasets on which to create (and prune) snapshots.
+  DATASETS              Datasets on which to create and prune snapshots.
 
 options:
   -h, --help            show this help message and exit
@@ -18,13 +19,26 @@ options:
                         Prefix of snapshot names of created and pruned
                         snapshots. Defaults to `snappy'.
   -S, --no-snapshot     Disables creating snapshots. Instead, only prune
-                        snapshots.
+                        and/or send snapshots.
 
 pruning:
-  -k KEEP_SPECIFICATION, --keep KEEP_SPECIFICATION
-                        Comma-separated list of keep specifications that
-                        specify how many snapshots to keep in what intervals.
+  -k KEEP_SPECIFICATIONS, --keep KEEP_SPECIFICATIONS
+                        Prune snapshots according to this list of keep
+                        specifications.
                         See https://github.com/Feuermurmel/snappy#pruning.
+
+sending snapshots:
+  -s TARGET, --send-to TARGET
+                        Send the snapshots of the DATASETS into child
+                        filesystem of this target filesystem. If specified,
+                        pruning will happen on the target datasets instead of
+                        the source datasets.
+  -b SEND_BASE, --send-base SEND_BASE
+                        The path prefix that is stripped from each of DATASETS
+                        and replaced with TARGET when sending snapshots to
+                        construct the names of the destination datasets.
+                        Without this option, only a single source dataset can
+                        be sent at a time, which is sent directly to TARGET.
 
 running from config file:
   --auto                Run the snapshot and prune actions specified in the

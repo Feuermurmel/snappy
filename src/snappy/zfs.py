@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from subprocess import check_call, check_output
+from subprocess import check_call, check_output, DEVNULL
 from typing import NewType, Iterable, TypeAlias, TypeVar, Generic, Sequence
 
 from snappy.utils import check_call_pipeline
@@ -70,14 +70,20 @@ def list_children(dataset: Dataset) -> list[Dataset]:
 
 
 def _list_snapshots_and_bookmarks(
-        dataset: Dataset, types: str) \
+        dataset: Dataset, types: str, quiet: bool) \
         -> tuple[Sequence[SnapshotInfo], Sequence[BookmarkInfo]]:
     """
     Return a list of snapshots of the specified dataset, ordered by createtxg.
     """
+    if quiet:
+        stderr = DEVNULL
+    else:
+        stderr = None
+
     output = check_output(
         ['zfs', 'list', '-Hpd1', '-t', types, '-o', 'name,guid,createtxg',
          '-s', 'createtxg', '--', dataset],
+        stderr=stderr,
         text=True)
 
     snapshots: list[SnapshotInfo] = []
@@ -101,17 +107,21 @@ def _list_snapshots_and_bookmarks(
 
 
 def list_snapshots_and_bookmarks(
-        dataset: Dataset) \
+        dataset: Dataset, *, quiet: bool = False) \
         -> tuple[Sequence[SnapshotInfo], Sequence[BookmarkInfo]]:
-    return _list_snapshots_and_bookmarks(dataset, 'snapshot,bookmark')
+    return _list_snapshots_and_bookmarks(dataset, 'snapshot,bookmark', quiet)
 
 
-def list_snapshots(dataset: Dataset) -> Sequence[SnapshotInfo]:
-    return _list_snapshots_and_bookmarks(dataset, 'snapshot')[0]
+def list_snapshots(
+        dataset: Dataset, *, quiet: bool = False) \
+        -> Sequence[SnapshotInfo]:
+    return _list_snapshots_and_bookmarks(dataset, 'snapshot', quiet)[0]
 
 
-def list_bookmarks(dataset: Dataset) -> Sequence[BookmarkInfo]:
-    return _list_snapshots_and_bookmarks(dataset, 'bookmark')[1]
+def list_bookmarks(
+        dataset: Dataset, *, quiet: bool = False) \
+        -> Sequence[BookmarkInfo]:
+    return _list_snapshots_and_bookmarks(dataset, 'bookmark', quiet)[1]
 
 
 def destroy_snapshots(snapshots: Iterable[Snapshot]) -> None:
@@ -138,6 +148,8 @@ def send_receive_snapshot(
         incremental_args = []
     else:
         incremental_args = ['-i', f'{incremental_base_snapshot}']
+
+    logging.info(f'Sending snapshot: {source} -> {target}')
 
     # Using -F on the receive side to prevent receiving to fail if the target
     # filesystem has been modified since the last receive. This will only make a

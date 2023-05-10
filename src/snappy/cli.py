@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import argparse
 import logging
+import shlex
 import sys
 from argparse import Namespace
 from pathlib import Path
+from subprocess import CalledProcessError
 from typing import TypeVar, Callable
 
 from snappy.config import get_default_config_path, parse_keep_spec, KeepSpec
@@ -29,6 +31,13 @@ def _parse_args() -> Namespace:
         description='Create and/or prune snapshots on ZFS filesystems.')
 
     parser.add_argument(
+        'datasets',
+        nargs='*',
+        type=Dataset,
+        metavar='DATASETS',
+        help='Datasets on which to create and prune snapshots.')
+
+    parser.add_argument(
         '-r',
         '--recursive',
         action='store_true',
@@ -38,6 +47,7 @@ def _parse_args() -> Namespace:
     parser.add_argument(
         '-p',
         '--prefix',
+        default=None,
         help=f'Prefix of snapshot names of created and pruned snapshots. '
              f'Defaults to `{default_snapshot_name_prefix}\'.')
 
@@ -46,26 +56,41 @@ def _parse_args() -> Namespace:
         '--no-snapshot',
         dest='take_snapshot',
         action='store_false',
-        help='Disables creating snapshots. Instead, only prune snapshots.')
+        help='Disables creating snapshots. Instead, only prune and/or send '
+             'snapshots.')
 
-    parser.add_argument(
-        'datasets',
-        nargs='*',
-        type=Dataset,
-        metavar='DATASETS',
-        help='Datasets on which to create (and prune) snapshots.')
+    prune_group = parser.add_argument_group('pruning')
 
-    pruning_group = parser.add_argument_group('pruning')
-
-    pruning_group.add_argument(
+    prune_group.add_argument(
         '-k',
         '--keep',
         type=list_arg(parse_keep_spec),
         dest='keep_specs',
-        metavar='KEEP_SPECIFICATION',
-        help='Comma-separated list of keep specifications that specify how '
-             'many snapshots to keep in what intervals.\n'
+        metavar='KEEP_SPECIFICATIONS',
+        help='Prune snapshots according to this list of keep specifications.\n'
              'See https://github.com/Feuermurmel/snappy#pruning.')
+
+    send_group = parser.add_argument_group('sending snapshots')
+
+    send_group.add_argument(
+        '-s',
+        '--send-to',
+        type=Dataset,
+        dest='send_target',
+        metavar='TARGET',
+        help='Send the snapshots of the DATASETS into child filesystem of this '
+             'target filesystem. If specified, pruning will happen on the '
+             'target datasets instead of the source datasets.')
+
+    send_group.add_argument(
+        '-b',
+        '--send-base',
+        type=Dataset,
+        help='The path prefix that is stripped from each of DATASETS and '
+             'replaced with TARGET when sending snapshots to construct the '
+             'names of the destination datasets. Without this option, only a '
+             'single source dataset can be sent at a time, which is sent '
+             'directly to TARGET.')
 
     auto_group = parser.add_argument_group('running from config file')
 
@@ -84,15 +109,16 @@ def _parse_args() -> Namespace:
 
     args = parser.parse_args()
 
-    def check(condition: object, message: str) -> None:
+    def check(condition: bool, message: str) -> None:
         if not condition:
             parser.error(message)
 
     if args.auto:
-        check(not args.recursive and args.prefix is None and not args.keep_specs
-              and args.take_snapshot and not args.datasets,
-              '--auto conflicts with --recursive, --prefix, --keep, '
-              '--no-snapshot and DATASETS.')
+        check(not args.datasets and not args.recursive and args.prefix is None
+              and args.take_snapshot and not args.keep_specs
+              and args.send_target is None and args.send_base is None,
+              '--auto conflicts with DATASETS, --recursive, --prefix, '
+              '--no-snapshot, --keep, --send-to, and --send-base.')
     else:
         check(args.datasets,
               'DATASETS is required unless --auto is given.')
@@ -100,20 +126,30 @@ def _parse_args() -> Namespace:
         check(args.config_path is None,
               '--config requires --auto.')
 
-        check(args.take_snapshot or args.keep_specs is not None,
-              '--no-snapshot requires --keep.')
+        check(args.take_snapshot or args.keep_specs is not None
+              or args.send_target,
+              '--no-snapshot requires at least one of --keep and --send-to.')
+
+        check(args.send_target is not None or args.send_base is None,
+              '--send-base requires --send-to.')
+
+        # TODO: Check send base is set if multiple datasets given.
 
     return args
 
 
 def main(
         datasets: list[Dataset], recursive: bool, prefix: str | None,
-        keep_specs: list[KeepSpec] | None, take_snapshot: bool, auto: bool,
-        config_path: Path | None) -> None:
+        take_snapshot: bool, keep_specs: list[KeepSpec] | None,
+        send_target: Dataset | None, send_base: Dataset | None, auto: bool,
+        config_path: Path | None) \
+        -> None:
     if auto:
         auto_command(config_path)
     else:
-        cli_command(datasets, recursive, prefix, keep_specs, take_snapshot)
+        cli_command(
+            datasets, recursive, prefix, take_snapshot, None, keep_specs,
+            send_target, send_base)
 
 
 def entry_point() -> None:
@@ -123,6 +159,9 @@ def entry_point() -> None:
         main(**vars(_parse_args()))
     except UserError as e:
         logging.error(f'error: {e}')
+        sys.exit(1)
+    except CalledProcessError as e:
+        logging.error(f'error: Internal command failed: {shlex.join(e.cmd)}')
         sys.exit(1)
     except KeyboardInterrupt:
         logging.error('Operation interrupted.')

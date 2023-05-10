@@ -31,6 +31,9 @@ def test_readme_contains_usage(capsys, monkeypatch, snappy_command):
     except SystemExit:
         pass
 
+    # By accident, this will include `$ snappy --help` at the beginning. The
+    # snappy_command fixture outputs this as part of logging, but I think it's
+    # cute and I'm keeping it.
     usage_block = f'```\n' \
                   f'{capsys.readouterr().out.strip()}\n' \
                   f'```'

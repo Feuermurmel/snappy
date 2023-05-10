@@ -1,9 +1,15 @@
+# TODO: Test multiple datasets without send base
+
+
 def test_invalid_argument_combinations(snappy_command, fails_with_message):
     with fails_with_message('DATASETS is required unless --auto is given'):
         snappy_command('')
 
-    with fails_with_message('--no-snapshot requires --keep'):
+    with fails_with_message('--no-snapshot requires either --keep or --send-to'):
         snappy_command('-S foo')
+
+    with fails_with_message('--send-base requires --send-to'):
+        snappy_command('-b x foo')
 
     with fails_with_message('--auto conflicts with'):
         snappy_command('--auto -p x')

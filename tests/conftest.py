@@ -21,13 +21,13 @@ temp_zpool_name = 'snappy-test-zpool'
 
 
 def pytest_sessionstart(session):
+    # Allow mocking of the current time.
     class MockableDatetime(datetime.datetime):
         now = mockable_fn(datetime.datetime.now)
 
-    # Allow mocking of the current time.
     datetime.datetime = MockableDatetime
-
     toml.load = mockable_fn(toml.load)
+    subprocess.check_call = mockable_fn(subprocess.check_call)
 
 
 def run_command(*cmdline: str | Path) -> list[str]:
@@ -40,10 +40,20 @@ def get_mount_point(filesystem: str) -> Path:
     return Path(mount_point)
 
 
+def _zfs_list(filesystem: str, type: str) -> list[str]:
+    output_lines = \
+        run_command('zfs', 'list', '-Hpr', '-d', '1', '-t', type, '-o', 'name', filesystem)
+
+    # Strip fs@ or fs# prefix from each returned entry.
+    return [i[len(filesystem) + 1:] for i in output_lines]
+
+
 def get_snapshots(filesystem: str) -> list[str]:
-    return [
-        i.removeprefix(f'{filesystem}@')
-        for i in run_command('zfs', 'list', '-Hpr', '-d', '1', '-t', 'snapshot', '-o', 'name', filesystem)]
+    return _zfs_list(filesystem, 'snapshot')
+
+
+def get_bookmarks(filesystem: str) -> list[str]:
+    return _zfs_list(filesystem, 'bookmark')
 
 
 def cleanup_temp_zpool():
@@ -89,7 +99,7 @@ def filesystems(zpool):
 
 @pytest.fixture
 def filesystem(filesystems):
-    return filesystems('temp')
+    return filesystems('fs')
 
 
 @pytest.fixture
@@ -102,7 +112,11 @@ def snappy_command(monkeypatch):
     from snappy.cli import entry_point
 
     def snappy_command_fixture(args: str) -> None:
-        monkeypatch.setattr('sys.argv', shlex.split(f'snappy {args}'))
+        cmdline = f'snappy {args}'
+
+        print(f'$ {cmdline}')
+
+        monkeypatch.setattr('sys.argv', shlex.split(cmdline))
         entry_point()
 
     return snappy_command_fixture
@@ -116,7 +130,12 @@ def expect_message(
     def expect_message_context(message_pattern: str) -> Iterator[None]:
         yield
 
-        assert re.search(message_pattern, capsys.readouterr().err)
+        output = capsys.readouterr().err
+
+        assert re.search(message_pattern, output), \
+               f'Output did not contain the expected pattern "{message_pattern}":\n' \
+               f'\n' \
+               f'{output}'
 
     return expect_message_context
 
@@ -137,19 +156,24 @@ def mocked_datetime_now(monkeypatch):
     Mock datetime.datetime.now() used to generate snapshot names so that we can
     have consistent snapshot names during tests.
     """
-    print(datetime.datetime)
-    print(datetime.datetime.now)
-
-    now = datetime.datetime(2001, 2, 3, 7, 15, 0)
+    current_time = datetime.datetime(2001, 2, 3, 8, 15, 0)
 
     def mock_datetime_now(tz=None):
-        nonlocal now
+        nonlocal current_time
 
-        now += datetime.timedelta(hours=1)
+        now = current_time
+        current_time += datetime.timedelta(hours=1)
 
         return now
 
+    def set_current_time(time):
+        nonlocal current_time
+
+        current_time = time
+
     monkeypatch.setattr(datetime.datetime.now, '__wrapped__', mock_datetime_now)
+
+    return set_current_time
 
 
 @pytest.fixture
