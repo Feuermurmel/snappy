@@ -114,17 +114,16 @@ def list_bookmarks(dataset: Dataset) -> Sequence[BookmarkInfo]:
     return _list_snapshots_and_bookmarks(dataset, 'bookmark')[1]
 
 
-def destroy_snapshots(snapshots: Iterable[Snapshot], recursive: bool) -> None:
+def destroy_snapshots(snapshots: Iterable[Snapshot]) -> None:
     if not snapshots:
         # We can't call `zfs destroy` with an empty list of snapshots.
         return
 
-    recursive_arg = ['-r'] if recursive else []
     dataset, = {i.dataset for i in snapshots}
     snapshots_arg = f'{dataset}@{",".join(i.name for i in snapshots)}'
 
     logging.info(f'Destroying snapshots: {snapshots_arg}')
-    check_call(['zfs', 'destroy', *recursive_arg, '--', snapshots_arg])
+    check_call(['zfs', 'destroy', '--', snapshots_arg])
 
 
 def destroy_bookmark(bookmark: Bookmark) -> None:
