@@ -11,7 +11,8 @@ import dacite
 import toml
 from typing_extensions import TypeAlias
 
-from snappy.utils import UserError, mockable_fn
+from snappy.test_utils import mockable_fn
+from snappy.utils import UserError
 from snappy.zfs import Dataset
 
 

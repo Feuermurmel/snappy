@@ -14,7 +14,7 @@ import toml
 from _pytest.capture import CaptureFixture
 from pytest import MonkeyPatch
 
-from snappy.utils import mockable_fn
+from snappy.test_utils import mockable_fn
 
 
 temp_zpool_vdev_path = Path('/dev/shm/snappy-test-vdev')

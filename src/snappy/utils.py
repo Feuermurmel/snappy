@@ -1,14 +1,8 @@
 import shlex
-import sys
 import textwrap
 from argparse import HelpFormatter
-from functools import wraps
 from subprocess import check_call
-from typing import ParamSpec, TypeVar, Callable, Any
-
-
-T = TypeVar('T')
-P = ParamSpec('P')
+from typing import Any
 
 
 timestamp_format = '%Y-%m-%d-%H%M%S'
@@ -45,21 +39,6 @@ class BetterHelpFormatter(HelpFormatter):
 
     def _fill_text(self, text: str, width: int, indent: str) -> str:
         return '\n'.join(_wrap_paragraphs(text, width, indent))
-
-
-def mockable_fn(fn: Callable[P, T]) -> Callable[P, T]:
-    """
-    Decorator for functions that allows them to be mocked even after they've
-    been imported with a `from` import.
-    """
-    if 'pytest' not in sys.modules:
-        return fn
-
-    @wraps(fn)
-    def wrapped_fn(*args: P.args, **kwargs: P.kwargs) -> T:
-        return wrapped_fn.__wrapped__(*args, **kwargs)  # type: ignore
-
-    return wrapped_fn
 
 
 def check_call_pipeline(*cmdlines: list[str], **kwargs: Any) -> None:

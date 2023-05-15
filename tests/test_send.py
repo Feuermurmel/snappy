@@ -205,7 +205,7 @@ def abort_after_n_calls(num_calls, fn):
 # Number of calls to `subprocess.check_call()` it takes to complete the send
 # operation below. This is used to generate test cases that abort the send after
 # each of those operations.
-_num_operations = 10
+_num_operations = 14
 
 
 @pytest.mark.parametrize('allowed_operations', range(1, _num_operations + 1))
