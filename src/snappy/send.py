@@ -98,9 +98,9 @@ def send_snapshots(source: Dataset, target: Dataset, prefix: str) -> None:
         if parse_snapshot_name(snapshot.ref.name, prefix) is None:
             continue
 
-        # This happens if the snapshot that has most recently been sent to the
-        # target has not yet been deleted from the source. In this case we skip
-        # everything except deleting the snapshot.
+        # We can skip everything and just delete the snapshot if that snapshot
+        # has already been sent to the target but not yet deleted from the
+        # source.
         if snapshot.guid != most_recent_target_snapshot_guid:
             # Create a bookmark of the snapshot we're going to send. For the
             # logic above to work, this bookmark needs to exist before receiving
@@ -108,12 +108,11 @@ def send_snapshots(source: Dataset, target: Dataset, prefix: str) -> None:
             new_incremental_bookmark = Bookmark(source, snapshot.ref.name)
             create_bookmark(snapshot.ref, new_incremental_bookmark)
 
-            # Send and destroy the snapshot.
+            # Send the snapshot.
             target_snapshot = Snapshot(target, snapshot.ref.name)
             send_receive_snapshot(incremental_bookmark, snapshot.ref, target_snapshot)
 
-            # Destroy the incremental source bookmark, if this was an
-            # incremental send.
+            # Destroy the old bookmark that we used for the incremental send.
             if incremental_bookmark is not None:
                 destroy_bookmark(incremental_bookmark)
 

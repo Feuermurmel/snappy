@@ -44,6 +44,7 @@ def _iter_child_datasets(
 def _run_script(script: str) -> None:
     try:
         # TODO: Maybe start a new session here and wait for it.
+        # TODO: Log command.
         subprocess.check_call(script, shell=True)
     except CalledProcessError as e:
         raise UserError(

@@ -138,6 +138,8 @@ def _parse_args() -> Namespace:
     return args
 
 
+# TODO: Gracefully handle non-existing source dataset (i.e. print warning and
+#  skip).
 def main(
         datasets: list[Dataset], recursive: bool, prefix: str | None,
         take_snapshot: bool, keep_specs: list[KeepSpec] | None,
