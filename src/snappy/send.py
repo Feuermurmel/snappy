@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from subprocess import CalledProcessError, check_call
+from subprocess import CalledProcessError
 from typing import Iterable, TypeVar, Callable
 
 from snappy.snapshots import parse_snapshot_name
 from snappy.utils import timestamp_format
 from snappy.zfs import send_receive_snapshot, Snapshot, Bookmark, \
     list_snapshots, Dataset, list_snapshots_and_bookmarks, create_bookmark, \
-    destroy_bookmark, destroy_snapshots
+    destroy_bookmark, destroy_snapshots, rename_dataset
 
 
 class CannotMoveRootOfPoolException(Exception):
@@ -28,11 +28,11 @@ def _move_target_away(dataset: Dataset) -> None:
 
     new_dataset = Dataset(f'{parent_name}{sep}{new_base_name}')
 
+    rename_dataset(dataset, new_dataset)
+
     logging.warning(
         f'Warning: Dataset at send target {dataset} has been renamed '
         f'to {new_base_name}.')
-
-    check_call(['zfs', 'rename', dataset, new_dataset])
 
 
 T = TypeVar('T')

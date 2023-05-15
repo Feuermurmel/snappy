@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass
-from subprocess import check_call, check_output, DEVNULL
+from subprocess import check_call, check_output, DEVNULL, CalledProcessError
 from typing import NewType, Iterable, TypeAlias, TypeVar, Generic, Sequence
 
 from snappy.utils import check_call_pipeline
@@ -45,6 +46,21 @@ class _Info(Generic[SnapshotOrBookmarkT]):
 
 SnapshotInfo: TypeAlias = _Info[Snapshot]
 BookmarkInfo: TypeAlias = _Info[Bookmark]
+
+
+def rename_dataset(dataset: Dataset, new_name: Dataset) -> None:
+    # Renaming often fails with `cannot unmount '...': unmount failed`. Retry a
+    # bunch of times to get around this.
+    for _ in range(5):
+        try:
+            check_call(['zfs', 'rename', dataset, new_name])
+        except CalledProcessError as e:
+            error = e
+            time.sleep(1)
+        else:
+            break
+    else:
+        raise error
 
 
 def create_snapshots(snapshots: list[Snapshot], recursive: bool) -> None:
