@@ -4,6 +4,7 @@ import datetime
 import re
 import shlex
 import subprocess
+import sys
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Callable, Iterator, ContextManager
@@ -114,7 +115,7 @@ def snappy_command(monkeypatch):
     def snappy_command_fixture(args: str) -> None:
         cmdline = f'snappy {args}'
 
-        print(f'$ {cmdline}')
+        print(f'$ {cmdline}', file=sys.stderr)
 
         monkeypatch.setattr('sys.argv', shlex.split(cmdline))
         entry_point()

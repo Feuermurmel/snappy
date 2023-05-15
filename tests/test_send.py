@@ -1,4 +1,6 @@
+import sys
 from datetime import datetime
+from functools import wraps
 from subprocess import check_call, CalledProcessError
 
 import pytest
@@ -177,17 +179,40 @@ def test_snapshot_bookmark_lost(
     assert (get_mount_point(moved_target) / 'file1').exists()
 
 
+class Aborted(Exception):
+    pass
+
+
+def abort_after_n_calls(num_calls, fn):
+    """
+    Wraps a function so that it will allow the specified number of call to
+    happen and raise `Aborted` on each call afterward.
+    """
+    @wraps(fn)
+    def wrapped_fn(*args, **kwargs):
+        nonlocal num_calls
+
+        if not num_calls:
+            raise Aborted
+
+        num_calls -= 1
+
+        return fn(*args, **kwargs)
+
+    return wrapped_fn
+
+
 # Number of calls to `subprocess.check_call()` it takes to complete the send
 # operation below. This is used to generate test cases that abort the send after
 # each of those operations.
-_num_operations = 4
+_num_operations = 10
 
 
-@pytest.mark.parametrize('abort_after', range(_num_operations))
-@pytest.mark.parametrize('interference', ['replace_parent', 'replace_child'])
+@pytest.mark.parametrize('allowed_operations', range(1, _num_operations + 1))
+@pytest.mark.parametrize('interference', [True, False])
 def test_interrupted(
-        snappy_command, filesystem, send_target, abort_after, interference,
-        monkeypatch, mocked_datetime_now):
+        snappy_command, filesystem, send_target, allowed_operations,
+        interference, monkeypatch, mocked_datetime_now):
     child_filesystem = f'{filesystem}/child'
     send_target_child = f'{send_target}/child'
 
@@ -196,50 +221,35 @@ def test_interrupted(
     snappy_command(f'-r {filesystem}')
     snappy_command(f'-r {filesystem}')
 
-    class Aborted(Exception):
-        pass
-
-    performed_operations = 0
-
-    def mock_check_call(*args, **kwargs):
-        nonlocal performed_operations
-
-        # Number of allowed operations is used up, abort.
-        if performed_operations > abort_after:
-            raise Aborted
-
-        performed_operations += 1
-        original_check_call(*args, **kwargs)
-
+    # Add 1, because we want to allow `allowed_operations` operations and abort
+    # _after_ that.
     original_check_call = check_call.__wrapped__
-    monkeypatch.setattr(check_call, '__wrapped__', mock_check_call)
+    monkeypatch.setattr(
+        check_call,
+        '__wrapped__',
+        abort_after_n_calls(allowed_operations, original_check_call))
 
     try:
         snappy_command(f'-rS -s {send_target} {filesystem}')
-
-        # Check that the operation completes after the expected number of operations,
-        # otherwise `_num_operations` has the wrong value.
-        assert abort_after == _num_operations
+        aborted = False
     except Aborted as e:
-        print('>> Command aborted <<')
+        print('>> Command aborted <<', file=sys.stderr)
+        aborted = True
 
-    # Muck with one of the target filesystems.
-    if interference == 'replace_parent':
-        run_command('zfs', 'destroy', '-r', send_target)
-        run_command('zfs', 'create', send_target)
-    elif interference == 'replace_child':
-        try:
-            run_command('zfs', 'destroy', '-r', send_target_child)
-        except CalledProcessError:
-            # The filesystem might not yet exist.
-            pass
+    # Check that the operation _only_ completes after `_num_operations`
+    # operations, otherwise that value needs to adjusted to make sure we're
+    # testing every case.
+    assert (allowed_operations < _num_operations) == aborted
 
-        run_command('zfs', 'create', send_target_child)
-    else:
-        assert False
+    if interference:
+        # Remove all snapshots on the target filesystem. The filesystem might
+        # not yet exist or not yet have snapshot.
+        run_command('zfs', 'create', '-p', send_target)
+        run_command('zfs', 'snapshot', f'{send_target}@foo')
+        run_command('zfs', 'destroy', f'{send_target}@%')
 
-    # From now on, commands will succeed.
-    abort_after = 100
+    # Replace the original function, all calls should work again from now on.
+    monkeypatch.setattr(check_call, '__wrapped__', original_check_call)
 
     mocked_datetime_now(datetime(2001, 2, 4, 10))
 
@@ -257,6 +267,12 @@ def test_interrupted(
     # have already been sent.
     assert 'snappy-2001-02-04-100000' in get_snapshots(send_target)
     assert 'snappy-2001-02-04-100000' in get_snapshots(send_target_child)
+
+    if not interference:
+        # If we did nothing to the send target, so we should get all three
+        # snapshots.
+        assert len(get_snapshots(send_target)) == 3
+        assert len(get_snapshots(send_target_child)) == 3
 
 
 # TODO: Add test: Replace child filesystem with file.
