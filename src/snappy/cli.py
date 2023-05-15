@@ -161,7 +161,12 @@ def entry_point() -> None:
         logging.error(f'error: {e}')
         sys.exit(1)
     except CalledProcessError as e:
-        logging.error(f'error: Internal command failed: {shlex.join(e.cmd)}')
+        cmdline_str = e.cmd
+
+        if not isinstance(e.cmd, (str, bytes)):
+            cmdline_str = shlex.join(cmdline_str)
+
+        logging.error(f'error: Internal command failed: {cmdline_str}')
         sys.exit(1)
     except KeyboardInterrupt:
         logging.error('Operation interrupted.')
