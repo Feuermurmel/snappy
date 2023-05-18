@@ -165,13 +165,24 @@ def send_receive_snapshot(
     else:
         incremental_args = ['-i', f'{incremental_base_snapshot}']
 
-    logging.info(f'Sending snapshot: {source} -> {target}')
+    send_cmdline = \
+        ['zfs', 'send', '--raw', '--props', *incremental_args, f'{source}']
+
+    dry_run_output = check_output(
+        [*send_cmdline, '--dryrun', '--verbose'],
+        text=True)
+
+    # I know I could use `--parsable` to get a stable output format to parse,
+    # but then I'd have to convert the number of bytes to an output format
+    # myself, trying to imitate a format that ZFS uses. `--verbose` prints a
+    # line of the form `total estimated size is 1.40G`.
+    size_estimate_str = dry_run_output.split()[-1]
+
+    logging.info(f'Sending snapshot: {source} (about {size_estimate_str})')
 
     # Using -F on the receive side to prevent receiving to fail if the target
     # filesystem has been modified since the last receive. This will only make a
     # difference for incremental sends, i.e. when we know that the target
     # filesystem has actually been created as a back of the source we're
     # sending. If the target filesystem is unrelated, it won't be overwritten.
-    check_call_pipeline(
-        ['zfs', 'send', '-wp', *incremental_args, f'{source}'],
-        ['zfs', 'receive', '-F', f'{target}'])
+    check_call_pipeline(send_cmdline, ['zfs', 'receive', '-F', f'{target}'])

@@ -13,11 +13,14 @@ def send_target(filesystems):
     return filesystems('target', create=False)
 
 
-def test_send(snappy_command, filesystem, send_target):
+def test_send(snappy_command, expect_message, filesystem, send_target):
     file_path = get_mount_point(filesystem) / 'file1'
     file_path.touch()
 
-    snappy_command(f'-s {send_target} {filesystem}')
+    # Check that we successfully extracted the estimated size when parsing the
+    # output of `zfs send --dryrun`.
+    with expect_message('Sending snapshot: .* \\(about [0-9.]+[KM]\\)'):
+        snappy_command(f'-s {send_target} {filesystem}')
 
     # Make sure we're not mixing up the filesystems.
     file_path.unlink()
