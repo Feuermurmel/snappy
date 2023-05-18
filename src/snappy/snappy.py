@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import subprocess
 from datetime import datetime
 from pathlib import Path
@@ -47,8 +48,9 @@ def _get_selected_datasets(
 
 def _run_script(script: str) -> None:
     try:
+        logging.info(f'Running pre-snapshot script: {script}')
+
         # TODO: Maybe start a new session here and wait for it.
-        # TODO: Log command.
         subprocess.check_call(script, shell=True)
     except CalledProcessError as e:
         raise UserError(
