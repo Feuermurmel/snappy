@@ -7,13 +7,14 @@ pre_snapshot_script = "rsync -avx / /fishtank/rootfs"
 [[snapshot]]
 datasets = ["fishtank"]
 prefix = "backup"
-recursive = true
+recursive = false  # The default.
 prune_keep = ['10', '1h:24', '1d:30', '4w']
 
 [[snapshot]]
 datasets = ["thinktank/srv", "thinktank/home"]
-recursive = false  # The default.
-take_snapshot = false
+exclude = ["thinktank/home/aiden"]
+recursive = true
+take_snapshot = false  # Only send and prune snapshots in this job.
 prune_keep = ['1w']
 send_target = "septictank"
 send_base = "thinktank"

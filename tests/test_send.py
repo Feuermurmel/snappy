@@ -282,3 +282,4 @@ def test_interrupted(
 # TODO: Add test: Have unrelated snapshots on source.
 # TODO: Add test: Change prefix while sending snapshots.
 # TODO: Add test: Using root of pool as send target.
+# TODO: Add test: Pruning snapshots with --no-snapshot and no snapshots to send on some filesystems that are sent.

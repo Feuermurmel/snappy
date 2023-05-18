@@ -41,8 +41,17 @@ def _parse_args() -> Namespace:
         '-r',
         '--recursive',
         action='store_true',
-        help='Create and prune snapshots recursively on the specified '
-             'datasets.')
+        help='Include children of the specified datasets when creating, '
+             'sending, and/or pruning snapshots.')
+
+    parser.add_argument(
+        '-e',
+        '--exclude',
+        type=Dataset,
+        action='append',
+        default=[],
+        help='Exclude a dataset and its children when enumerating datasets '
+             'recursively.')
 
     parser.add_argument(
         '-p',
@@ -123,6 +132,9 @@ def _parse_args() -> Namespace:
         check(args.datasets,
               'DATASETS is required unless --auto is given.')
 
+        check(args.recursive or not args.exclude,
+              '--exclude requires --recursive.')
+
         check(args.config_path is None,
               '--config requires --auto.')
 
@@ -130,10 +142,13 @@ def _parse_args() -> Namespace:
               or args.send_target,
               '--no-snapshot requires at least one of --keep and --send-to.')
 
-        check(args.send_target is not None or args.send_base is None,
-              '--send-base requires --send-to.')
-
-        # TODO: Check send base is set if multiple datasets given.
+        if args.send_target is None:
+            check(args.send_base is None,
+                  '--send-base requires --send-to.')
+        else:
+            check(len(args.datasets) < 2 or args.send_base is not None,
+                  '--send-to requires --send-base if more than one dataset is '
+                  'specified')
 
     return args
 
@@ -141,17 +156,17 @@ def _parse_args() -> Namespace:
 # TODO: Gracefully handle non-existing source dataset (i.e. print warning and
 #  skip).
 def main(
-        datasets: list[Dataset], recursive: bool, prefix: str | None,
-        take_snapshot: bool, keep_specs: list[KeepSpec] | None,
-        send_target: Dataset | None, send_base: Dataset | None, auto: bool,
-        config_path: Path | None) \
+        datasets: list[Dataset], recursive: bool, exclude: list[str],
+        prefix: str | None, take_snapshot: bool,
+        keep_specs: list[KeepSpec] | None, send_target: Dataset | None,
+        send_base: Dataset | None, auto: bool, config_path: Path | None) \
         -> None:
     if auto:
         auto_command(config_path)
     else:
         cli_command(
-            datasets, recursive, prefix, take_snapshot, None, keep_specs,
-            send_target, send_base)
+            datasets, recursive, exclude, prefix, take_snapshot, None,
+            keep_specs, send_target, send_base)
 
 
 def entry_point() -> None:

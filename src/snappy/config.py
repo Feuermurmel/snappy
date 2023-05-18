@@ -25,6 +25,7 @@ class Config:
 class SnapshotConfig:
     datasets: list[Dataset]
     recursive: bool = False
+    exclude: list[str] = field(default_factory=list)
     prefix: Optional[str] = None
     take_snapshot: bool = True
     pre_snapshot_script: Optional[str] = None
@@ -129,20 +130,26 @@ def _validate_config(config: Config, config_path: Path) -> None:
 
     for i in config.snapshot:
         check(i.take_snapshot or i.prune_keep or i.send_target is not None,
-              f'At least one of keys `prune_keep\' or `send_target\' is '
-              f'required if `take_snapshot\' is set to false.')
+              'At least one of keys `prune_keep\' or `send_target\' is '
+              'required if `take_snapshot\' is set to false.')
+
+        check(i.recursive or not i.exclude,
+              'Key `exclude\' requires that `recursive\' is set to true.')
 
         check(i.prune_keep is None or i.prune_keep,
-              f'`prune_keep\' cannot be an empty list.')
+              '`prune_keep\' cannot be an empty list.')
 
         check(i.pre_snapshot_script is None or i.take_snapshot,
-              f'Key `pre_snapshot_script\' requires that `take_snapshot\' is '
-              f'set to true')
+              'Key `pre_snapshot_script\' requires that `take_snapshot\' is '
+              'set to true')
 
-        check(i.send_target is not None or i.send_base is None,
-              'Key `send_target\' is required if `send_base\' is set.')
-
-        # TODO: Check send base is set if multiple datasets given.
+        if i.send_target is None:
+            check(i.send_base is None,
+                  'Key `send_target\' is required if `send_base\' is set.')
+        else:
+            check(len(i.datasets) < 2 or i.send_base is not None,
+                  'Key `send_base\' is required if `send_target\' is set and '
+                  'multiple datasets are specified.')
 
 
 _dacite_config = dacite.Config(type_hooks=_dacite_type_hooks)  # type: ignore

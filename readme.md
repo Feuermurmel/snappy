@@ -1,9 +1,8 @@
 # snappy - Create and prune ZFS snapshots
 
 ```
-$ snappy --help
-usage: snappy [-h] [-r] [-p PREFIX] [-S] [-k KEEP_SPECIFICATIONS] [-s TARGET]
-              [-b SEND_BASE] [--auto] [--config CONFIG_PATH]
+usage: snappy [-h] [-r] [-e EXCLUDE] [-p PREFIX] [-S] [-k KEEP_SPECIFICATIONS]
+              [-s TARGET] [-b SEND_BASE] [--auto] [--config CONFIG_PATH]
               [DATASETS ...]
 
 Create and/or prune snapshots on ZFS filesystems.
@@ -13,8 +12,11 @@ positional arguments:
 
 options:
   -h, --help            show this help message and exit
-  -r, --recursive       Create and prune snapshots recursively on the
-                        specified datasets.
+  -r, --recursive       Include children of the specified datasets when
+                        creating, sending, and/or pruning snapshots.
+  -e EXCLUDE, --exclude EXCLUDE
+                        Exclude a dataset and its children when enumerating
+                        datasets recursively.
   -p PREFIX, --prefix PREFIX
                         Prefix of snapshot names of created and pruned
                         snapshots. Defaults to `snappy'.

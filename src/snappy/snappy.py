@@ -32,16 +32,49 @@ def _get_send_target(
     return Dataset(send_target + source.removeprefix(send_base))
 
 
+def _get_pool_name(dataset: Dataset) -> Dataset:
+    return Dataset(dataset.split('/', 1)[0])
+
+
+def _iter_parents(dataset: Dataset) -> Iterator[Dataset]:
+    while True:
+        yield dataset
+
+        if '/' not in dataset:
+            break
+
+        dataset = Dataset(dataset.rsplit('/', 1)[0])
+
+
 def _get_selected_datasets(
-        datasets: list[Dataset], recursive: bool) \
+        datasets: list[Dataset], recursive: bool, exclude: list[Dataset]) \
         -> list[Dataset]:
+    if not recursive:
+        # Input validation should make sure that `exclude` is only set if
+        # recursive is true.
+        assert not exclude
+
+        return datasets
+
+    processed_datasets: set[Dataset] = set()
     res: list[Dataset] = []
 
-    for i in datasets:
-        if recursive:
-            res.extend(list_children(i))
-        else:
-            res.append(i)
+    # Sort so that we get parents before children.
+    for i in sorted(datasets):
+        if i not in processed_datasets:
+            for j in list_children(i):
+                # Add all children to this set to that we won't call
+                # `list_children()` again even if they occur in `datasets`.
+                processed_datasets.add(j)
+
+                # Figure out if a dataset should be included by iterating
+                # looking up each prefix in `datasets` and `exclude`.
+                for k in _iter_parents(j):
+                    if k in exclude:
+                        break
+                    elif k in datasets:
+                        res.append(j)
+                        break
 
     return res
 
@@ -88,10 +121,10 @@ def _prune(
 
 
 def cli_command(
-        datasets: list[Dataset], recursive: bool, prefix: str | None,
-        take_snapshot: bool, pre_snapshot_script: str | None,
-        keep_specs: list[KeepSpec] | None, send_target: Dataset | None,
-        send_base: Dataset | None) \
+        datasets: list[Dataset], recursive: bool, exclude: list[Dataset],
+        prefix: str | None, take_snapshot: bool,
+        pre_snapshot_script: str | None, keep_specs: list[KeepSpec] | None,
+        send_target: Dataset | None, send_base: Dataset | None) \
         -> None:
     if prefix is None:
         prefix = default_snapshot_name_prefix
@@ -99,7 +132,7 @@ def cli_command(
     if pre_snapshot_script is not None:
         _run_script(pre_snapshot_script)
 
-    selected_datasets = _get_selected_datasets(datasets, recursive)
+    selected_datasets = _get_selected_datasets(datasets, recursive, exclude)
 
     if take_snapshot:
         _snapshot(selected_datasets, prefix)
@@ -114,7 +147,9 @@ def cli_command(
 
         # We want to prune snapshots on the target datasets when sending
         # snapshots.
-        datasets = [_get_send_target(i, send_target, send_base) for i in datasets]
+        selected_datasets = [
+            _get_send_target(i, send_target, send_base)
+            for i in selected_datasets]
 
     if keep_specs is not None:
         _prune(selected_datasets, prefix, keep_specs)
@@ -128,5 +163,5 @@ def auto_command(config_path: Path | None) -> None:
 
     for i in config.snapshot:
         cli_command(
-            i.datasets, i.recursive, i.prefix, i.take_snapshot,
+            i.datasets, i.recursive, i.exclude, i.prefix, i.take_snapshot,
             i.pre_snapshot_script, i.prune_keep, i.send_target, i.send_base)

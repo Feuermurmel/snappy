@@ -14,6 +14,11 @@ def test_invalid_argument_combinations(snappy_command, fails_with_message):
     with fails_with_message('--auto conflicts with'):
         snappy_command('--auto -p x')
 
+    with fails_with_message(
+            '--send-to requires --send-base if more than one dataset is '
+            'specified'):
+        snappy_command('fishtank/a fishtank/b -s watertank')
+
 
 def test_invalid_keep_spec(snappy_command, fails_with_message):
     with fails_with_message('argument -k/--keep: Missing count or interval.'):
