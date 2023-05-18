@@ -53,7 +53,7 @@ def rename_dataset(dataset: Dataset, new_name: Dataset) -> None:
     # bunch of times to get around this.
     for _ in range(5):
         try:
-            check_call(['zfs', 'rename', dataset, new_name])
+            check_call(['zfs', 'rename', '--', dataset, new_name])
         except CalledProcessError as e:
             error = e
             time.sleep(1)
@@ -73,7 +73,7 @@ def create_snapshots(snapshots: list[Snapshot], recursive: bool) -> None:
 
 def create_bookmark(snapshot: Snapshot, bookmark: Bookmark) -> None:
     logging.info(f'Creating bookmark: {bookmark}')
-    check_call(['zfs', 'bookmark', f'{snapshot}', f'{bookmark}'])
+    check_call(['zfs', 'bookmark', '--', f'{snapshot}', f'{bookmark}'])
 
 
 def list_children(dataset: Dataset) -> list[Dataset]:
@@ -165,12 +165,11 @@ def send_receive_snapshot(
     else:
         incremental_args = ['-i', f'{incremental_base_snapshot}']
 
-    send_cmdline = \
-        ['zfs', 'send', '--raw', '--props', *incremental_args, f'{source}']
+    def send_cmdline(*opts: str) -> list[str]:
+        return ['zfs', 'send', '--raw', '--props', *incremental_args, *opts,
+                '--', f'{source}']
 
-    dry_run_output = check_output(
-        [*send_cmdline, '--dryrun', '--verbose'],
-        text=True)
+    dry_run_output = check_output(send_cmdline('--dryrun', '--verbose'), text=True)
 
     # I know I could use `--parsable` to get a stable output format to parse,
     # but then I'd have to convert the number of bytes to an output format
@@ -185,4 +184,4 @@ def send_receive_snapshot(
     # difference for incremental sends, i.e. when we know that the target
     # filesystem has actually been created as a back of the source we're
     # sending. If the target filesystem is unrelated, it won't be overwritten.
-    check_call_pipeline(send_cmdline, ['zfs', 'receive', '-F', f'{target}'])
+    check_call_pipeline(send_cmdline(), ['zfs', 'receive', '-F', '--', f'{target}'])
