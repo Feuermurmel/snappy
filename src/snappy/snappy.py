@@ -31,14 +31,18 @@ def _get_send_target(
     return Dataset(send_target + source.removeprefix(send_base))
 
 
-def _iter_child_datasets(
+def _get_selected_datasets(
         datasets: list[Dataset], recursive: bool) \
-        -> Iterator[Dataset]:
+        -> list[Dataset]:
+    res: list[Dataset] = []
+
     for i in datasets:
         if recursive:
-            yield from list_children(i)
+            res.extend(list_children(i))
         else:
-            yield i
+            res.append(i)
+
+    return res
 
 
 def _run_script(script: str) -> None:
@@ -51,31 +55,30 @@ def _run_script(script: str) -> None:
             f'Pre-snapshot script failed with exit code {e.returncode}.')
 
 
-def _snapshot(datasets: list[Dataset], recursive: bool, prefix: str) -> None:
+def _snapshot(datasets: list[Dataset], prefix: str) -> None:
     snapshot_name = make_snapshot_name(prefix, datetime.now())
     snapshots = [Snapshot(i, snapshot_name) for i in datasets]
 
-    create_snapshots(snapshots, recursive)
+    create_snapshots(snapshots)
 
 
 def _send(
-        datasets: list[Dataset], recursive: bool, prefix: str,
-        send_target: Dataset, send_base: str) \
+        datasets: list[Dataset], prefix: str, send_target: Dataset,
+        send_base: str) \
         -> None:
-    for dataset in _iter_child_datasets(datasets, recursive):
+    for dataset in datasets:
         target_dataset = _get_send_target(dataset, send_target, send_base)
 
         send_snapshots(dataset, target_dataset, prefix)
 
 
 def _prune(
-        datasets: list[Dataset], recursive: bool, prefix: str,
-        keep_specs: list[KeepSpec]) \
+        datasets: list[Dataset], prefix: str, keep_specs: list[KeepSpec]) \
         -> None:
     # The most recent snapshot should never be deleted by this tool.
     keep_specs = keep_specs + [MostRecentKeepSpec(1)]
 
-    for dataset in _iter_child_datasets(datasets, recursive):
+    for dataset in datasets:
         snapshots = list_snapshots(dataset)
         expired_snapshot = find_expired_snapshots(snapshots, keep_specs, prefix)
 
@@ -94,23 +97,25 @@ def cli_command(
     if pre_snapshot_script is not None:
         _run_script(pre_snapshot_script)
 
+    selected_datasets = _get_selected_datasets(datasets, recursive)
+
     if take_snapshot:
-        _snapshot(datasets, recursive, prefix)
+        _snapshot(selected_datasets, prefix)
 
     if send_target is not None:
         if send_base is None:
             # Effectively, when no send_base is specified, the full path of the
-            # single source is used as the base.
+            # source dataset is used as the base.
             send_base, = datasets
 
-        _send(datasets, recursive, prefix, send_target, send_base)
+        _send(selected_datasets, prefix, send_target, send_base)
 
         # We want to prune snapshots on the target datasets when sending
         # snapshots.
         datasets = [_get_send_target(i, send_target, send_base) for i in datasets]
 
     if keep_specs is not None:
-        _prune(datasets, recursive, prefix, keep_specs)
+        _prune(selected_datasets, prefix, keep_specs)
 
 
 def auto_command(config_path: Path | None) -> None:

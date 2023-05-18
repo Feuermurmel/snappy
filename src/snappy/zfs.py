@@ -63,12 +63,11 @@ def rename_dataset(dataset: Dataset, new_name: Dataset) -> None:
         raise error
 
 
-def create_snapshots(snapshots: list[Snapshot], recursive: bool) -> None:
-    recursive_arg = ['-r'] if recursive else []
+def create_snapshots(snapshots: list[Snapshot]) -> None:
     snapshot_args = [str(i) for i in snapshots]
 
     logging.info(f'Creating snapshots: {", ".join(snapshot_args)}')
-    check_call(['zfs', 'snapshot', *recursive_arg, '--', *snapshot_args])
+    check_call(['zfs', 'snapshot', '--', *snapshot_args])
 
 
 def create_bookmark(snapshot: Snapshot, bookmark: Bookmark) -> None:
@@ -153,7 +152,7 @@ def destroy_snapshots(snapshots: Iterable[Snapshot]) -> None:
 
 
 def destroy_bookmark(bookmark: Bookmark) -> None:
-    logging.info(f'Destroying bookmark: {bookmark}')
+    logging.info(f'Removing bookmark: {bookmark}')
     check_call(['zfs', 'destroy', '--', f'{bookmark}'])
 
 
