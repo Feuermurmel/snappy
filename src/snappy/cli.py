@@ -156,7 +156,7 @@ def _parse_args() -> Namespace:
 # TODO: Gracefully handle non-existing source dataset (i.e. print warning and
 #  skip).
 def main(
-        datasets: list[Dataset], recursive: bool, exclude: list[str],
+        datasets: list[Dataset], recursive: bool, exclude: list[Dataset],
         prefix: str | None, take_snapshot: bool,
         keep_specs: list[KeepSpec] | None, send_target: Dataset | None,
         send_base: Dataset | None, auto: bool, config_path: Path | None) \

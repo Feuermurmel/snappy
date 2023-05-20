@@ -25,7 +25,7 @@ class Config:
 class SnapshotConfig:
     datasets: list[Dataset]
     recursive: bool = False
-    exclude: list[str] = field(default_factory=list)
+    exclude: list[Dataset] = field(default_factory=list)
     prefix: Optional[str] = None
     take_snapshot: bool = True
     pre_snapshot_script: Optional[str] = None
