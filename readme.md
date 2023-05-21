@@ -2,7 +2,8 @@
 
 ```
 usage: snappy [-h] [-r] [-e EXCLUDE] [-p PREFIX] [-S] [-k KEEP_SPECIFICATIONS]
-              [-s TARGET] [-b SEND_BASE] [--auto] [--config CONFIG_PATH]
+              [-s TARGET] [-b SEND_BASE] [--auto [ACTIONS]]
+              [--config CONFIG_PATH]
               [DATASETS ...]
 
 Create and/or prune snapshots on ZFS filesystems.
@@ -43,8 +44,15 @@ sending snapshots:
                         be sent at a time, which is sent directly to TARGET.
 
 running from config file:
-  --auto                Run the snapshot and prune actions specified in the
-                        configuration file instead of on the command line.
+  --auto [ACTIONS]      Run the snapshot, send, and prune actions specified in
+                        the configuration file instead of on the command line.
+
+                        Use --auto=snapshot to only run snapshot and prune
+                        actions. In this mode, because snapshots are not sent,
+                        pruning on the send destinations is also skipped.
+
+                        Use --auto=send to only run send and prune actions. In
+                        this mode, only snapshots on send targets are pruned.
   --config CONFIG_PATH  Path to the configuration file to use. Requires
                         --auto. Defaults to `/etc/snappy/snappy.toml'.
 ```

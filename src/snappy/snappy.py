@@ -3,9 +3,10 @@ from __future__ import annotations
 import logging
 import subprocess
 from datetime import datetime
+from enum import Enum
 from pathlib import Path
 from subprocess import CalledProcessError
-from typing import Iterator
+from typing import Iterator, Sequence
 
 from snappy.config import load_config, get_default_config_path, KeepSpec, \
     MostRecentKeepSpec
@@ -15,7 +16,13 @@ from snappy.utils import UserError
 from snappy.zfs import create_snapshots, destroy_snapshots, Dataset, Snapshot, \
     list_snapshots, list_children
 
+
 default_snapshot_name_prefix = 'snappy'
+
+
+class AutoAction(Enum):
+    snapshot = 'snapshot'
+    send = 'send'
 
 
 def _get_send_target(
@@ -121,29 +128,37 @@ def _prune(
 
 
 def cli_command(
-        datasets: list[Dataset], recursive: bool, exclude: list[Dataset],
+        *, datasets: list[Dataset], recursive: bool, exclude: list[Dataset],
         prefix: str | None, take_snapshot: bool,
         pre_snapshot_script: str | None, keep_specs: list[KeepSpec] | None,
-        send_target: Dataset | None, send_base: Dataset | None) \
+        send_target: Dataset | None, send_base: Dataset | None,
+        do_snapshot: bool, do_send: bool) \
         -> None:
     if prefix is None:
         prefix = default_snapshot_name_prefix
 
-    if pre_snapshot_script is not None:
+    if do_snapshot and pre_snapshot_script is not None:
         _run_script(pre_snapshot_script)
 
     selected_datasets = _get_selected_datasets(datasets, recursive, exclude)
 
-    if take_snapshot:
+    if do_snapshot and take_snapshot:
         _snapshot(selected_datasets, prefix)
 
-    if send_target is not None:
+    # Depending on whether we have a send target or not, pruning is disabled by
+    # setting one of the `do_*` flags to False.
+    if send_target is None:
+        do_prune = do_snapshot
+    else:
+        do_prune = do_send
+
         if send_base is None:
             # Effectively, when no send_base is specified, the full path of the
             # source dataset is used as the base.
             send_base, = datasets
 
-        _send(selected_datasets, prefix, send_target, send_base)
+        if do_send:
+            _send(selected_datasets, prefix, send_target, send_base)
 
         # We want to prune snapshots on the target datasets when sending
         # snapshots.
@@ -151,11 +166,13 @@ def cli_command(
             _get_send_target(i, send_target, send_base)
             for i in selected_datasets]
 
-    if keep_specs is not None:
+    if do_prune and keep_specs is not None:
         _prune(selected_datasets, prefix, keep_specs)
 
 
-def auto_command(config_path: Path | None) -> None:
+def auto_command(
+        config_path: Path | None, auto_actions: Sequence[AutoAction]) \
+        -> None:
     if config_path is None:
         config_path = get_default_config_path()
 
@@ -163,5 +180,14 @@ def auto_command(config_path: Path | None) -> None:
 
     for i in config.snapshot:
         cli_command(
-            i.datasets, i.recursive, i.exclude, i.prefix, i.take_snapshot,
-            i.pre_snapshot_script, i.prune_keep, i.send_target, i.send_base)
+            datasets=i.datasets,
+            recursive=i.recursive,
+            exclude=i.exclude,
+            prefix=i.prefix,
+            take_snapshot=i.take_snapshot,
+            pre_snapshot_script=i.pre_snapshot_script,
+            keep_specs=i.prune_keep,
+            send_target=i.send_target,
+            send_base=i.send_base,
+            do_snapshot=AutoAction.snapshot in auto_actions,
+            do_send=AutoAction.send in auto_actions)

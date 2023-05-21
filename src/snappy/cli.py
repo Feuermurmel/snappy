@@ -7,10 +7,11 @@ import sys
 from argparse import Namespace
 from pathlib import Path
 from subprocess import CalledProcessError
-from typing import TypeVar, Callable
+from typing import TypeVar, Callable, Sequence
 
 from snappy.config import get_default_config_path, parse_keep_spec, KeepSpec
-from snappy.snappy import auto_command, cli_command, default_snapshot_name_prefix
+from snappy.snappy import auto_command, cli_command, \
+    default_snapshot_name_prefix, AutoAction
 from snappy.utils import BetterHelpFormatter, UserError
 from snappy.zfs import Dataset
 
@@ -105,9 +106,20 @@ def _parse_args() -> Namespace:
 
     auto_group.add_argument(
         '--auto',
-        action='store_true',
-        help='Run the snapshot and prune actions specified in the '
-             'configuration file instead of on the command line.')
+        nargs='?',
+        const=AutoAction,
+        type=list_arg(AutoAction),
+        dest='auto_actions',
+        metavar='ACTIONS',
+        help='Run the snapshot, send, and prune actions specified in the '
+             'configuration file instead of on the command line.\n'
+             '\n'
+             'Use --auto=snapshot to only run snapshot and prune actions. '
+             'In this mode, because snapshots are not sent, pruning on the '
+             'send destinations is also skipped.\n'
+             '\n'
+             'Use --auto=send to only run send and prune actions. In this '
+             'mode, only snapshots on send targets are pruned.')
 
     auto_group.add_argument(
         '--config',
@@ -122,7 +134,7 @@ def _parse_args() -> Namespace:
         if not condition:
             parser.error(message)
 
-    if args.auto:
+    if args.auto_actions:
         check(not args.datasets and not args.recursive and args.prefix is None
               and args.take_snapshot and not args.keep_specs
               and args.send_target is None and args.send_base is None,
@@ -136,7 +148,7 @@ def _parse_args() -> Namespace:
               '--exclude requires --recursive.')
 
         check(args.config_path is None,
-              '--config requires --auto.')
+              '--config requires --auto, --auto-send, or --auto-snapshot.')
 
         check(args.take_snapshot or args.keep_specs is not None
               or args.send_target,
@@ -159,14 +171,24 @@ def main(
         datasets: list[Dataset], recursive: bool, exclude: list[Dataset],
         prefix: str | None, take_snapshot: bool,
         keep_specs: list[KeepSpec] | None, send_target: Dataset | None,
-        send_base: Dataset | None, auto: bool, config_path: Path | None) \
+        send_base: Dataset | None, auto_actions: Sequence[AutoAction] | None,
+        config_path: Path | None) \
         -> None:
-    if auto:
-        auto_command(config_path)
-    else:
+    if auto_actions is None:
         cli_command(
-            datasets, recursive, exclude, prefix, take_snapshot, None,
-            keep_specs, send_target, send_base)
+            datasets=datasets,
+            recursive=recursive,
+            exclude=exclude,
+            prefix=prefix,
+            take_snapshot=take_snapshot,
+            pre_snapshot_script=None,
+            keep_specs=keep_specs,
+            send_target=send_target,
+            send_base=send_base,
+            do_snapshot=True,
+            do_send=True)
+    else:
+        auto_command(config_path, auto_actions)
 
 
 def entry_point() -> None:

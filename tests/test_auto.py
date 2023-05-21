@@ -1,5 +1,8 @@
 from conftest import get_snapshots, run_command
 
+# Bring fixture into scope.
+from test_send import send_target
+
 
 # TODO: Test multiple datasets without send base
 
@@ -79,6 +82,36 @@ def test_auto(snappy_command, mocked_config_file, filesystem):
     expected_snapshots = ['snappy-2001-02-03-091500', 'snappy-2001-02-03-101500']
     assert get_snapshots(filesystem) == expected_snapshots
     assert get_snapshots(child_filesystem) == expected_snapshots
+
+
+def test_auto_actions(
+        snappy_command, mocked_config_file, filesystem, send_target):
+    """
+    Check that specifying "auto actions" to `--auto` works correctly. Only
+    checks the basics.
+    """
+    mocked_config_file.write_text(
+        f'[[snapshot]]\n'
+        f'datasets = ["{filesystem}"]\n'
+        f'send_target = "{send_target}"\n'
+        f'prune_keep = ["1"]\n')
+
+    snappy_command('--auto')
+    snappy_command('--auto=snapshot')
+    snappy_command('--auto=snapshot')
+
+    # Nothing should be sent.
+    assert len(get_snapshots(send_target)) == 1
+    # We configured only one snapshot to keep, but because we're not sending,
+    # snapshots should not be pruned on the source.
+    assert len(get_snapshots(filesystem)) == 2
+
+    snappy_command('--auto=send')
+
+    # No additional snapshot should be taken, but existing snapshots should be
+    # sent and pruned.
+    assert not get_snapshots(filesystem)
+    assert get_snapshots(send_target) == ['snappy-2001-02-03-101500']
 
 
 def test_two_jobs(
