@@ -1,3 +1,4 @@
+import re
 import sys
 from pathlib import Path
 
@@ -33,9 +34,13 @@ def test_readme_contains_usage(capsys, monkeypatch, snappy_command):
 
     # By accident, this will include `$ snappy --help` at the beginning. The
     # snappy_command fixture outputs this as part of logging, but I think it's
-    # cute and I'm keeping it.
+    # cute, and I'm keeping it. Wrapped paragraphs contain whitespace used for
+    # indentation on empty lines, which I don't want to have in the markdown
+    # file.
+    help_output = re.sub(' +$', '', capsys.readouterr().out.strip(), flags=re.MULTILINE)
+
     usage_block = f'```\n' \
-                  f'{capsys.readouterr().out.strip()}\n' \
+                  f'{help_output}\n' \
                   f'```'
 
     print(f'Expecting {readme_path} the following block:\n'
